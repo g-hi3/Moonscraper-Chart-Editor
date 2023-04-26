@@ -8,9 +8,9 @@ using System;
 using System.Linq;
 using Game.Misc;
 
-public class SongValidate
+public static class SongValidate
 {
-    [System.Flags]
+    [Flags]
     public enum ValidationOptions
     {
         None            = 0,

@@ -2,12 +2,15 @@
 // See LICENSE in project root for license information.
 
 using UnityEngine;
+using Util;
 
 namespace MoonscraperChartEditor.Song
 {
     [System.Serializable]
     public abstract class SongObject
     {
+        private readonly IDebugWrapper _debug;
+        
         /// <summary>
         /// The song this object is connected to.
         /// </summary>
@@ -29,8 +32,14 @@ namespace MoonscraperChartEditor.Song
         public abstract int classID { get; }
 
         public SongObject(uint _tick)
+            : this(_tick, DebugWrapper.Instance)
         {
-            tick = _tick;
+        }
+
+        private protected SongObject(uint tick, IDebugWrapper debug)
+        {
+            this.tick = tick;
+            _debug = debug;
         }
 
         /// <summary>
@@ -51,7 +60,7 @@ namespace MoonscraperChartEditor.Song
         public T CloneAs<T>() where T : SongObject
         {
             T clone = this.Clone() as T;
-            Debug.Assert(clone != null, "Clone As casting type was incorrect");
+            _debug.Assert(clone != null, "Clone As casting type was incorrect");
             return clone;
         }
 

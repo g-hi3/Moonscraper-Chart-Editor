@@ -265,11 +265,7 @@ namespace MoonscraperChartEditor.Song
                     // Account for overwrite
                     if (insertionPos < count && list[insertionPos] == item)
                     {
-#if APPLICATION_MOONSCRAPER
-                        if (list[insertionPos].controller != null)
-                            list[insertionPos].controller.gameObject.SetActive(false);
-#endif
-                        list[insertionPos] = item;
+                        OverwriteItem(item, list, insertionPos);
                     }
                     else
                         list.Insert(insertionPos, item);
@@ -282,16 +278,7 @@ namespace MoonscraperChartEditor.Song
                     {
                         if (list[insertionPos] == item && item.classID == list[insertionPos].classID)
                         {
-#if APPLICATION_MOONSCRAPER
-                            // Overwrite 
-                            if (list[insertionPos].controller != null)
-                            {
-                                list[insertionPos].controller.gameObject.SetActive(false);
-                                //GameObject.Destroy(list[insertionPos].controller.gameObject);
-                            }
-#endif
-
-                            list[insertionPos] = item;
+                            OverwriteItem(item, list, insertionPos);
                         }
                         // Insert into sorted position
                         else
@@ -389,6 +376,15 @@ namespace MoonscraperChartEditor.Song
             }
 
             return insertionPos;
+        }
+
+        private static void OverwriteItem<T>(T item, IList<T> list, int insertionPos) where T : SongObject
+        {
+#if APPLICATION_MOONSCRAPER
+            if (list[insertionPos].controller != null)
+                list[insertionPos].controller.gameObject.SetActive(false);
+#endif
+            list[insertionPos] = item;
         }
 
         /// <summary>
