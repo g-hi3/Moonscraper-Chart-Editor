@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2016-2020 Alexander Ong
+// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 using System.Collections;
@@ -26,96 +26,104 @@ namespace MoonscraperChartEditor.Song.IO
 
         public const int c_proDrumsOffset = 64;
         public const int c_instrumentPlusOffset = 32;
+        public const int c_drumsAccentOffset = 33;
+        public const int c_drumsGhostOffset = 39;
+
         public const int c_starpowerId = 2;
         public const int c_starpowerDrumFillId = 64;
+        public const int c_drumRollStandardId = 65;
+        public const int c_drumRollSpecialId = 66;
 
-        public static readonly Dictionary<int, int> c_guitarNoteNumLookup = new Dictionary<int, int>()
-    {
-        { 0, (int)Note.GuitarFret.Green     },
-        { 1, (int)Note.GuitarFret.Red       },
-        { 2, (int)Note.GuitarFret.Yellow    },
-        { 3, (int)Note.GuitarFret.Blue      },
-        { 4, (int)Note.GuitarFret.Orange    },
-        { 7, (int)Note.GuitarFret.Open      },
-    };
+        public enum TrackLoadType
+        {
+            Guitar,
+            Drums,
+            GHLiveGuitar,
 
-        public static readonly Dictionary<int, Note.Flags> c_guitarFlagNumLookup = new Dictionary<int, Note.Flags>()
-    {
-        { 5      , Note.Flags.Forced },
-        { 6      , Note.Flags.Tap },
-    };
+            Unrecognised
+        }
 
-        public static readonly Dictionary<int, int> c_drumNoteNumLookup = new Dictionary<int, int>()
-    {
-        { 0, (int)Note.DrumPad.Kick      },
-        { 1, (int)Note.DrumPad.Red       },
-        { 2, (int)Note.DrumPad.Yellow    },
-        { 3, (int)Note.DrumPad.Blue      },
-        { 4, (int)Note.DrumPad.Orange    },
-        { 5, (int)Note.DrumPad.Green     },
-    };
+        public static readonly IReadOnlyDictionary<int, int> c_guitarNoteNumLookup = new Dictionary<int, int>()
+        {
+            { 0, (int)Note.GuitarFret.Green     },
+            { 1, (int)Note.GuitarFret.Red       },
+            { 2, (int)Note.GuitarFret.Yellow    },
+            { 3, (int)Note.GuitarFret.Blue      },
+            { 4, (int)Note.GuitarFret.Orange    },
+            { 7, (int)Note.GuitarFret.Open      },
+        };
 
-        public static readonly Dictionary<int, int> c_drumNoteToSaveNumberLookup = c_drumNoteNumLookup.ToDictionary((i) => i.Value, (i) => i.Key);
+        public static readonly IReadOnlyDictionary<int, Note.Flags> c_guitarFlagNumLookup = new Dictionary<int, Note.Flags>()
+        {
+            { 5      , Note.Flags.Forced },
+            { 6      , Note.Flags.Tap },
+        };
 
-        public static readonly Dictionary<int, Note.Flags> c_drumFlagNumLookup = new Dictionary<int, Note.Flags>()
-    {
-        { c_proDrumsOffset + 2, Note.Flags.ProDrums_Cymbal },       // Yellow save num from c_drumNoteNumLookup
-        { c_proDrumsOffset + 3, Note.Flags.ProDrums_Cymbal },       // Blue save num from c_drumNoteNumLookup
-        { c_proDrumsOffset + 4, Note.Flags.ProDrums_Cymbal },       // Orange (Green in 4-lane) save num from c_drumNoteNumLookup
-        { c_instrumentPlusOffset, Note.Flags.InstrumentPlus },      // Double Kick
-    };
+        public static readonly IReadOnlyDictionary<int, int> c_drumNoteNumLookup = new Dictionary<int, int>()
+        {
+            { 0, (int)Note.DrumPad.Kick      },
+            { 1, (int)Note.DrumPad.Red       },
+            { 2, (int)Note.DrumPad.Yellow    },
+            { 3, (int)Note.DrumPad.Blue      },
+            { 4, (int)Note.DrumPad.Orange    },
+            { 5, (int)Note.DrumPad.Green     },
+        };
 
-        // Default flags, mark as cymbal for pro drums automatically. Also used for choosing whether to write flag information or not if it's like this by default in the first place.
-        public static readonly Dictionary<int, Note.Flags> c_drumNoteDefaultFlagsLookup = new Dictionary<int, Note.Flags>()
-    {
-        { (int)Note.DrumPad.Kick      , Note.Flags.None },
-        { (int)Note.DrumPad.Red       , Note.Flags.None },
-        { (int)Note.DrumPad.Yellow    , Note.Flags.None },
-        { (int)Note.DrumPad.Blue      , Note.Flags.None },
-        { (int)Note.DrumPad.Orange    , Note.Flags.None },   // Orange becomes green during 4-lane
-        { (int)Note.DrumPad.Green     , Note.Flags.None },
-    };
+        // Default flags for drums notes
+        public static readonly IReadOnlyDictionary<int, Note.Flags> c_drumNoteDefaultFlagsLookup = new Dictionary<int, Note.Flags>()
+        {
+            { (int)Note.DrumPad.Kick      , Note.Flags.None },
+            { (int)Note.DrumPad.Red       , Note.Flags.None },
+            { (int)Note.DrumPad.Yellow    , Note.Flags.None },
+            { (int)Note.DrumPad.Blue      , Note.Flags.None },
+            { (int)Note.DrumPad.Orange    , Note.Flags.None },   // Orange becomes green during 4-lane
+            { (int)Note.DrumPad.Green     , Note.Flags.None },
+        };
 
-        public static readonly Dictionary<int, int> c_ghlNoteNumLookup = new Dictionary<int, int>()
-    {
-        { 0, (int)Note.GHLiveGuitarFret.White1     },
-        { 1, (int)Note.GHLiveGuitarFret.White2       },
-        { 2, (int)Note.GHLiveGuitarFret.White3    },
-        { 3, (int)Note.GHLiveGuitarFret.Black1      },
-        { 4, (int)Note.GHLiveGuitarFret.Black2    },
-        { 8, (int)Note.GHLiveGuitarFret.Black3      },
-        { 7, (int)Note.GHLiveGuitarFret.Open      },
-    };
+        public static readonly IReadOnlyDictionary<int, int> c_ghlNoteNumLookup = new Dictionary<int, int>()
+        {
+            { 0, (int)Note.GHLiveGuitarFret.White1    },
+            { 1, (int)Note.GHLiveGuitarFret.White2    },
+            { 2, (int)Note.GHLiveGuitarFret.White3    },
+            { 3, (int)Note.GHLiveGuitarFret.Black1    },
+            { 4, (int)Note.GHLiveGuitarFret.Black2    },
+            { 8, (int)Note.GHLiveGuitarFret.Black3    },
+            { 7, (int)Note.GHLiveGuitarFret.Open      },
+        };
 
-        public static readonly Dictionary<int, Note.Flags> c_ghlFlagNumLookup = c_guitarFlagNumLookup;
+        public static readonly IReadOnlyDictionary<int, Note.Flags> c_ghlFlagNumLookup = c_guitarFlagNumLookup;
 
-        public static readonly Dictionary<string, Song.Difficulty> c_trackNameToTrackDifficultyLookup = new Dictionary<string, Song.Difficulty>()
-    {
-        { "Easy",   Song.Difficulty.Easy    },
-        { "Medium", Song.Difficulty.Medium  },
-        { "Hard",   Song.Difficulty.Hard    },
-        { "Expert", Song.Difficulty.Expert  },
-    };
+        public static readonly IReadOnlyDictionary<string, Song.Difficulty> c_trackNameToTrackDifficultyLookup = new Dictionary<string, Song.Difficulty>()
+        {
+            { "Easy",   Song.Difficulty.Easy    },
+            { "Medium", Song.Difficulty.Medium  },
+            { "Hard",   Song.Difficulty.Hard    },
+            { "Expert", Song.Difficulty.Expert  },
+        };
 
-        public static readonly Dictionary<string, Song.Instrument> c_instrumentStrToEnumLookup = new Dictionary<string, Song.Instrument>()
-    {
-        { "Single",         Song.Instrument.Guitar },
-        { "DoubleGuitar",   Song.Instrument.GuitarCoop },
-        { "DoubleBass",     Song.Instrument.Bass },
-        { "DoubleRhythm",   Song.Instrument.Rhythm },
-        { "Drums",          Song.Instrument.Drums },
-        { "Keyboard",       Song.Instrument.Keys },
-        { "GHLGuitar",      Song.Instrument.GHLiveGuitar },
-        { "GHLBass",        Song.Instrument.GHLiveBass },
-    };
+        public static readonly IReadOnlyDictionary<string, Song.Instrument> c_instrumentStrToEnumLookup = new Dictionary<string, Song.Instrument>()
+        {
+            { "Single",         Song.Instrument.Guitar },
+            { "DoubleGuitar",   Song.Instrument.GuitarCoop },
+            { "DoubleBass",     Song.Instrument.Bass },
+            { "DoubleRhythm",   Song.Instrument.Rhythm },
+            { "Drums",          Song.Instrument.Drums },
+            { "Keyboard",       Song.Instrument.Keys },
+            { "GHLGuitar",      Song.Instrument.GHLiveGuitar },
+            { "GHLBass",        Song.Instrument.GHLiveBass },
+            { "GHLRhythm",      Song.Instrument.GHLiveRhythm },
+            { "GHLCoop",        Song.Instrument.GHLiveCoop },
+        };
 
-        public static readonly Dictionary<Song.Instrument, Song.Instrument> c_instrumentParsingTypeLookup = new Dictionary<Song.Instrument, Song.Instrument>()
-    {
-        // Other instruments default to loading as a guitar type track
-        { Song.Instrument.Drums,          Song.Instrument.Drums },
-        { Song.Instrument.GHLiveGuitar ,  Song.Instrument.GHLiveGuitar },
-        { Song.Instrument.GHLiveBass ,  Song.Instrument.GHLiveBass },
-    };
+        public static readonly IReadOnlyDictionary<Song.Instrument, TrackLoadType> c_instrumentParsingTypeLookup = new Dictionary<Song.Instrument, TrackLoadType>()
+        {
+            // Other instruments default to loading as a guitar type track
+            { Song.Instrument.Drums, TrackLoadType.Drums },
+            { Song.Instrument.GHLiveGuitar, TrackLoadType.GHLiveGuitar },
+            { Song.Instrument.GHLiveBass,  TrackLoadType.GHLiveGuitar },
+            { Song.Instrument.GHLiveRhythm,  TrackLoadType.GHLiveGuitar },
+            { Song.Instrument.GHLiveCoop,  TrackLoadType.GHLiveGuitar },
+        };
 
         public static class MetaData
         {
@@ -235,6 +243,121 @@ namespace MoonscraperChartEditor.Song.IO
             public static short ParseAsShort(string line)
             {
                 return short.Parse(Regex.Matches(line, FLOATSEARCH)[0].ToString());
+            }
+        }
+
+        public class NoteFlagPriority
+        {
+            // Flags to skip adding if the corresponding flag is already present
+            private static readonly IReadOnlyDictionary<Note.Flags, Note.Flags> c_noteBlockingFlagsLookup = new Dictionary<Note.Flags, Note.Flags>()
+            {
+                { Note.Flags.Forced, Note.Flags.Tap },
+                { Note.Flags.ProDrums_Ghost, Note.Flags.ProDrums_Accent },
+            };
+
+            // Flags to remove if the corresponding flag is being added
+            private static readonly IReadOnlyDictionary<Note.Flags, Note.Flags> c_noteFlagsToRemoveLookup = c_noteBlockingFlagsLookup.ToDictionary((i) => i.Value, (i) => i.Key);
+
+            public static readonly NoteFlagPriority Forced = new NoteFlagPriority(Note.Flags.Forced);
+            public static readonly NoteFlagPriority Tap = new NoteFlagPriority(Note.Flags.Tap);
+            public static readonly NoteFlagPriority InstrumentPlus = new NoteFlagPriority(Note.Flags.InstrumentPlus);
+            public static readonly NoteFlagPriority Cymbal = new NoteFlagPriority(Note.Flags.ProDrums_Cymbal);
+            public static readonly NoteFlagPriority Accent = new NoteFlagPriority(Note.Flags.ProDrums_Accent);
+            public static readonly NoteFlagPriority Ghost = new NoteFlagPriority(Note.Flags.ProDrums_Ghost);
+
+            private static readonly IReadOnlyList<NoteFlagPriority> priorities = new List<NoteFlagPriority>()
+            {
+                Forced,
+                Tap,
+                InstrumentPlus,
+                Cymbal,
+                Accent,
+                Ghost,
+            };
+
+            public Note.Flags flagToAdd { get; } = Note.Flags.None;
+            public Note.Flags blockingFlag { get; } = Note.Flags.None;
+            public Note.Flags flagToRemove { get; } = Note.Flags.None;
+
+            public NoteFlagPriority(Note.Flags flag)
+            {
+                flagToAdd = flag;
+
+                Note.Flags blockingFlag;
+                if (c_noteBlockingFlagsLookup.TryGetValue(flagToAdd, out blockingFlag))
+                {
+                    this.blockingFlag = blockingFlag;
+                }
+
+                Note.Flags flagToRemove;
+                if (c_noteFlagsToRemoveLookup.TryGetValue(flagToAdd, out flagToRemove))
+                {
+                    this.flagToRemove = flagToRemove;
+                }
+            }
+
+            public bool TryApplyToNote(Note note)
+            {
+                // Don't add if the flag to be added is lower-priority than a conflicting, already-added flag
+                if (blockingFlag != Note.Flags.None && note.flags.HasFlag(blockingFlag))
+                {
+                    return false;
+                }
+
+                // Flag can be added without issue
+                note.flags |= flagToAdd;
+
+                // Remove flags that are lower-priority than the added flag
+                if (flagToRemove != Note.Flags.None && note.flags.HasFlag(flagToRemove))
+                {
+                    note.flags &= ~flagToRemove;
+                }
+
+                return true;
+            }
+
+            public bool AreFlagsValid(Note.Flags flags)
+            {
+                if (flagToAdd == Note.Flags.None)
+                {
+                    // No flag to validate against
+                    return true;
+                }
+
+                if (blockingFlag != Note.Flags.None)
+                {
+                    if (flags.HasFlag(blockingFlag) && flags.HasFlag(flagToAdd))
+                    {
+                        // Note has conflicting flags
+                        return false;
+                    }
+                }
+
+                if (flagToRemove != Note.Flags.None)
+                {
+                    if (flags.HasFlag(flagToAdd) && flags.HasFlag(flagToRemove))
+                    {
+                        // Note has conflicting flags
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            public static bool AreFlagsValidForAll(Note.Flags flags, out NoteFlagPriority invalidPriority)
+            {
+                foreach (var priority in priorities)
+                {
+                    if (!priority.AreFlagsValid(flags))
+                    {
+                        invalidPriority = priority;
+                        return false;
+                    }
+                }
+
+                invalidPriority = null;
+                return true;
             }
         }
     }

@@ -16,6 +16,8 @@ public class NotePropertiesPanelController : PropertiesPanelController {
     public Toggle forcedToggle;
     public Toggle cymbalToggle;
     public Toggle doubleKickToggle;
+    public Toggle accentToggle;
+    public Toggle ghostToggle;
 
     public GameObject noteToolObject;
     PlaceNoteController noteToolController;
@@ -142,6 +144,8 @@ public class NotePropertiesPanelController : PropertiesPanelController {
         tapToggle.isOn = (flags & Note.Flags.Tap) != 0;
         cymbalToggle.isOn = (flags & Note.Flags.ProDrums_Cymbal) != 0;
         doubleKickToggle.isOn = (flags & Note.Flags.DoubleKick) != 0;
+        accentToggle.isOn = (flags & Note.Flags.ProDrums_Accent) != 0;
+        ghostToggle.isOn = (flags & Note.Flags.ProDrums_Ghost) != 0;
 
         toggleBlockingActive = false;
     }
@@ -156,6 +160,8 @@ public class NotePropertiesPanelController : PropertiesPanelController {
         tapToggle.gameObject.SetActive(!drumsMode);
         cymbalToggle.gameObject.SetActive(proDrumsMode);
         doubleKickToggle.gameObject.SetActive(proDrumsMode);
+        accentToggle.gameObject.SetActive(proDrumsMode);
+        ghostToggle.gameObject.SetActive(proDrumsMode);
 
         if (!drumsMode)
         {
@@ -181,40 +187,67 @@ public class NotePropertiesPanelController : PropertiesPanelController {
             {
                 cymbalToggle.interactable = noteToolController.cymbalInteractable;
                 doubleKickToggle.interactable = noteToolController.doubleKickInteractable;
+                accentToggle.interactable = noteToolController.accentInteractable;
+                ghostToggle.interactable = noteToolController.ghostInteractable;
             }
             else if (!IsInNoteTool())
             {
                 cymbalToggle.interactable = NoteFunctions.AllowedToBeCymbal(currentNote);
                 doubleKickToggle.interactable = NoteFunctions.AllowedToBeDoubleKick(currentNote, editor.currentDifficulty);
+                accentToggle.interactable = NoteFunctions.AllowedToBeAccent(currentNote);
+                ghostToggle.interactable = NoteFunctions.AllowedToBeGhost(currentNote);
             }
             else
             {
                 cymbalToggle.interactable = true;
                 doubleKickToggle.interactable = true;
+                accentToggle.interactable = true;
+                ghostToggle.interactable = true;
             }
         }
     }
 
+    static bool ToggleIsValid(Toggle toggle)
+    {
+        return toggle.interactable && toggle.isActiveAndEnabled;
+    }
+
     void Controls()
     {
-        if (MSChartEditorInput.GetInputDown(MSChartEditorInputActions.ToggleNoteTap) && tapToggle.interactable)
+        if (MSChartEditorInput.GetInputDown(MSChartEditorInputActions.ToggleNoteTap) && ToggleIsValid(tapToggle))
         {
+            Debug.Log("ToggleNoteTap");
             tapToggle.isOn = !tapToggle.isOn;
         }
 
-        if (MSChartEditorInput.GetInputDown(MSChartEditorInputActions.ToggleNoteForced) && forcedToggle.interactable)
+        if (MSChartEditorInput.GetInputDown(MSChartEditorInputActions.ToggleNoteForced) && ToggleIsValid(forcedToggle))
         {
+            Debug.Log("ToggleNoteForced");
             forcedToggle.isOn = !forcedToggle.isOn;
         }
 
-        if (MSChartEditorInput.GetInputDown(MSChartEditorInputActions.ToggleNoteCymbal) && cymbalToggle.interactable)
+        if (MSChartEditorInput.GetInputDown(MSChartEditorInputActions.ToggleNoteCymbal) && ToggleIsValid(cymbalToggle))
         {
+            Debug.Log("ToggleNoteCymbal");
             cymbalToggle.isOn = !cymbalToggle.isOn;
         }
 
-        if (MSChartEditorInput.GetInputDown(MSChartEditorInputActions.ToggleNoteDoubleKick) && doubleKickToggle.interactable)
+        if (MSChartEditorInput.GetInputDown(MSChartEditorInputActions.ToggleNoteDoubleKick) && ToggleIsValid(doubleKickToggle))
         {
+            Debug.Log("ToggleNoteDoubleKick");
             doubleKickToggle.isOn = !doubleKickToggle.isOn;
+        }
+
+        if (MSChartEditorInput.GetInputDown(MSChartEditorInputActions.ToggleNoteAccent) && ToggleIsValid(accentToggle))
+        {
+            Debug.Log("ToggleNoteAccent");
+            accentToggle.isOn = !accentToggle.isOn;
+        }
+
+        if (MSChartEditorInput.GetInputDown(MSChartEditorInputActions.ToggleNoteGhost) && ToggleIsValid(ghostToggle))
+        {
+            Debug.Log("ToggleNoteGhost");
+            ghostToggle.isOn = !ghostToggle.isOn;
         }
     }
 
@@ -225,177 +258,87 @@ public class NotePropertiesPanelController : PropertiesPanelController {
 	
     public void setTap()
     {
-        if (toggleBlockingActive)
-            return;
-
-        if (IsInNoteTool())
-        {
-            SetTapNoteTool();
-        }
-        else
-        {
-            SetTapNote();
-        }
-    }
-
-    void SetTapNoteTool()
-    {
-        if (tapToggle.interactable)
-            SetNoteToolFlag(ref noteToolController.desiredFlags, tapToggle, Note.Flags.Tap);
-    }
-
-    void SetTapNote()
-    {
-        if (currentNote == prevNote)
-        {
-            var newFlags = currentNote.flags;
-
-            if (currentNote != null)
-            {
-                if (tapToggle.isOn)
-                    newFlags |= Note.Flags.Tap;
-                else
-                    newFlags &= ~Note.Flags.Tap;
-            }
-
-            SetNewFlags(currentNote, newFlags);
-        }
-    }
-
-    void SetNoteToolFlag(ref Note.Flags flags, Toggle uiToggle, Note.Flags flagsToToggle)
-    {
-        if ((flags & flagsToToggle) == 0)
-            flags |= flagsToToggle;
-        else
-            flags &= ~flagsToToggle;
+        // A note can only be forced or a tap, not both
+        OnNoteFlagToggleChanged(tapToggle, Note.Flags.Tap, Note.Flags.Forced);
     }
 
     public void setForced()
     {
-        if (toggleBlockingActive)
-            return;
-
-        if (IsInNoteTool())
-        {
-            SetForcedNoteTool();
-        }
-        else
-        {
-            SetForcedNote();
-        }
+        // A note can only be forced or a tap, not both
+        OnNoteFlagToggleChanged(forcedToggle, Note.Flags.Forced, Note.Flags.Tap);
     }
 
     public void setCymbal()
     {
-        if (toggleBlockingActive)
-            return;
-
-        if (IsInNoteTool())
-        {
-            SetCymbalNoteTool();
-        }
-        else
-        {
-            SetCymbalNote();
-        }
+        OnNoteFlagToggleChanged(cymbalToggle, Note.Flags.ProDrums_Cymbal);
     }
 
     public void setDoubleKick()
     {
+        OnNoteFlagToggleChanged(doubleKickToggle, Note.Flags.DoubleKick);
+    }
+
+    public void setAccent()
+    {
+        // A note can only be either an accent or a ghost, not both
+        OnNoteFlagToggleChanged(accentToggle, Note.Flags.ProDrums_Accent, Note.Flags.ProDrums_Ghost);
+    }
+
+    public void setGhost()
+    {
+        // A note can only be either an accent or a ghost, not both
+        OnNoteFlagToggleChanged(ghostToggle, Note.Flags.ProDrums_Ghost, Note.Flags.ProDrums_Accent);
+    }
+
+    void OnNoteFlagToggleChanged(Toggle toggle, Note.Flags flag, Note.Flags flagToExclude = Note.Flags.None)
+    {
         if (toggleBlockingActive)
             return;
 
+        Note.Flags newFlags;
         if (IsInNoteTool())
         {
-            SetDoubleKickNoteTool();
+            if (toggle.interactable)
+                newFlags = noteToolController.desiredFlags;
+            else
+                return;
         }
         else
         {
-            SetDoubleKickNote();
+            if (currentNote == prevNote && currentNote != null)
+                newFlags = currentNote.flags;
+            else
+                return;
         }
-    }
 
-    void SetForcedNote()
-    {
-        if (currentNote == prevNote)
+        newFlags = ToggleFlags(newFlags, flag, toggle.isOn);
+        if ((newFlags & flagToExclude) != Note.Flags.None)
         {
-            var newFlags = currentNote.flags;
-
-            if (currentNote != null)
-            {
-                if (forcedToggle.isOn)
-                    newFlags |= Note.Flags.Forced;
-                else
-                    newFlags &= ~Note.Flags.Forced;
-            }
-
-            SetNewFlags(currentNote, newFlags);
-        }
-    }
-
-    void SetForcedNoteTool()
-    {
-        if (forcedToggle.interactable)
-            SetNoteToolFlag(ref noteToolController.desiredFlags, forcedToggle, Note.Flags.Forced);
-    }
-
-    void SetCymbalNote()
-    {
-        if (currentNote == prevNote)
-        {
-            var newFlags = currentNote.flags;
-
-            if (currentNote != null)
-            {
-                if (cymbalToggle.isOn)
-                    newFlags |= Note.Flags.ProDrums_Cymbal;
-                else
-                    newFlags &= ~Note.Flags.ProDrums_Cymbal;
-            }
-
-            SetNewFlags(currentNote, newFlags);
+            newFlags = ToggleFlags(newFlags, flagToExclude, false);
         }
 
+        SetNewFlags(currentNote, newFlags);
     }
 
-    void SetCymbalNoteTool()
+    Note.Flags ToggleFlags(Note.Flags flags, Note.Flags flagsToToggle, bool enabled)
     {
-        if (cymbalToggle.interactable)
-            SetNoteToolFlag(ref noteToolController.desiredFlags, cymbalToggle, Note.Flags.ProDrums_Cymbal);
-    }
+        if (enabled)
+            flags |= flagsToToggle;
+        else
+            flags &= ~flagsToToggle;
 
-    void SetDoubleKickNote()
-    {
-        if (currentNote == prevNote)
-        {
-            var newFlags = currentNote.flags;
-
-            if (currentNote != null)
-            {
-                if (doubleKickToggle.isOn)
-                    newFlags |= Note.Flags.DoubleKick;
-                else
-                    newFlags &= ~Note.Flags.DoubleKick;
-            }
-
-            SetNewFlags(currentNote, newFlags);
-        }
-
-    }
-
-    void SetDoubleKickNoteTool()
-    {
-        if (doubleKickToggle.interactable)
-            SetNoteToolFlag(ref noteToolController.desiredFlags, doubleKickToggle, Note.Flags.DoubleKick);
+        return flags;
     }
 
     void SetNewFlags(Note note, Note.Flags newFlags)
     {
-        if (note.flags == newFlags)
-            return;
-
         if (editor.toolManager.currentToolId == EditorObjectToolManager.ToolID.Cursor)
         {
+            if (note.flags == newFlags)
+            {
+                return;
+            }
+
             Note newNote = new Note(note.tick, note.rawNote, note.length, newFlags);
             SongEditModifyValidated command = new SongEditModifyValidated(note, newNote);
             editor.commandStack.Push(command);

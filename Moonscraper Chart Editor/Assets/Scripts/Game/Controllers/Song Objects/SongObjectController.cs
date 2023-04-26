@@ -16,7 +16,7 @@ public abstract class SongObjectController : SelectableClick {
     public bool disableCancel = true;
     private bool isTool = false;
 
-    protected void Awake()
+    protected virtual void Awake()
     {
         editor = ChartEditor.Instance;
         isTool = GetComponent<ToolObject>();
@@ -64,7 +64,7 @@ public abstract class SongObjectController : SelectableClick {
 
     protected virtual void UpdateCheck()
     {
-        if (songObject != null && songObject.tick >= editor.minPos && songObject.tick < editor.maxPos)
+        if (songObject != null && songObject.tick >= editor.minPos && songObject.tick <= editor.maxPos)
         {
             if (editor.currentState == ChartEditor.State.Editor)
             {

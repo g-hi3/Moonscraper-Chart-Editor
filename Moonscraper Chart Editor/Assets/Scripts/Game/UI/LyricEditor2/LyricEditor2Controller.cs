@@ -15,55 +15,68 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
     // events. When the lyric editor is exited, a single ICommand will be pushed
     // to the command stack which contains all the changes which were made to
     // events
-    public class SongEditCommandSet : MoonscraperEngine.ICommand {
+    public class SongEditCommandSet : MoonscraperEngine.ICommand 
+    {
         List<SongEditCommand> commands = new List<SongEditCommand>();
         BatchedSongEditCommand batchedCommands = null;
-        public bool isEmpty {get {return commands.Count == 0;}}
+        public bool isEmpty => commands.Count == 0;
 
-        public void Add(SongEditCommand c) {
+        public void Add(SongEditCommand c) 
+        {
             commands.Add(c);
         }
 
-        public bool Remove(SongEditCommand c) {
+        public bool Remove(SongEditCommand c) 
+        {
             return commands.Remove(c);
         }
 
-        public void Invoke() {
-            if (batchedCommands == null) {
+        public void Invoke() 
+        {
+            if (batchedCommands == null) 
+            {
                 batchedCommands = new BatchedSongEditCommand(commands);
-            } else {
+            } 
+            else 
+            {
                 batchedCommands.Invoke();
             }
         }
 
-        public void Revoke() {
+        public void Revoke() 
+        {
             batchedCommands?.Revoke();
         }
     }
 
-    class PickupFromCommand : MoonscraperEngine.ICommand {
+    class PickupFromCommand : MoonscraperEngine.ICommand 
+    {
         public delegate void Refresh();
 
         Refresh refreshAfterUpdate;
         BatchedICommand pickupCommands;
 
-        public PickupFromCommand(BatchedICommand pickupCommands, Refresh refreshAfterUpdate) {
+        public PickupFromCommand(BatchedICommand pickupCommands, Refresh refreshAfterUpdate) 
+        {
             this.pickupCommands = pickupCommands;
             this.refreshAfterUpdate = refreshAfterUpdate;
         }
 
-        public void Invoke() {
+        public void Invoke() 
+        {
             pickupCommands.Invoke();
             refreshAfterUpdate();
         }
 
-        public void Revoke() {
+        public void Revoke() 
+        {
             pickupCommands.Revoke();
             refreshAfterUpdate();
         }
     }
 
-    enum InputState {
+    enum InputState 
+    {
         Full,
         Phrase
     }
@@ -99,14 +112,14 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
     LyricEditor2PhraseController lastPlaybackTarget = null;
     InputState inputState = InputState.Full;
     LyricEditor2PhraseController inputPhrase;
-    uint currentTickPos {get {return ChartEditor.Instance.currentTickPos;}}
+
     uint currentSnappedTickPos
     {
         get
         {
             return Globals.gameSettings.lyricEditorSettings.stepSnappingEnabled 
-                ? Snapable.TickToSnappedTick(currentTickPos, Globals.gameSettings.step, ChartEditor.Instance.currentSong) 
-                : currentTickPos;
+                ? Snapable.TickToSnappedTick(ChartEditor.Instance.currentTickPos, Globals.gameSettings.step, ChartEditor.Instance.currentSong) 
+                : ChartEditor.Instance.currentTickPos;
         }
     }
     bool playbackScrolling = false;
@@ -119,10 +132,12 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
     // Called every time the "place lyric" button is pressed; places the next
     // lyric in the current phrase, and sets the phrase's start tick, if it has
     // not been set
-    public void PlaceNextLyric() {
+    public void PlaceNextLyric() 
+    {
         currentPhrase = GetNextUnfinishedPhrase();
 
-        if (currentPhrase != null && IsLegalToPlaceNow()) {
+        if (currentPhrase != null && IsLegalToPlaceNow()) 
+        {
             // Clear command stack commands to prevent duplication after redo
             ClearPickupCommands();
 
@@ -152,7 +167,8 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
             currentPhrase.StartPlaceNextLyric(currentSnappedTickPos);
 
             // Set phrase_start if it is not already set
-            if (!currentPhrase.phraseStartPlaced) {
+            if (!currentPhrase.phraseStartPlaced) 
+            {
                 AutoPlacePhraseStart(currentPhrase);
             }
         }
@@ -162,16 +178,22 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
     // Called every time the "place lyric" button is released; stops placing the
     // next lyric in the current phrase and, if necessary, moves to the next
     // phrase. phrase_end events are placed here if necessary
-    public void StopPlaceNextLyric() {
-        if (currentPhrase != null) {
+    public void StopPlaceNextLyric() 
+    {
+        if (currentPhrase != null) 
+        {
             currentPhrase.StopPlaceNextLyric();
 
             // Place phrase_end event and move to next phrase if all syllables
             // were just placed
-            if (currentPhrase.allSyllablesPlaced) {
-                if (IsLegalToPlaceNow()) {
+            if (currentPhrase.allSyllablesPlaced) 
+            {
+                if (IsLegalToPlaceNow()) 
+                {
                     currentPhrase.SetPhraseEnd(currentSnappedTickPos);
-                } else {
+                } 
+                else 
+                {
                     AutoPlacePhraseEnd(currentPhrase);
                 }
                 currentPhrase = GetNextUnfinishedPhrase();
@@ -184,7 +206,8 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
     // Display a large input field for the user to enter lyrics in dash-
     // newline notation; field should be populated with a string given by
     // GetTextRepresentation()
-    public void EnableInputMenu() {
+    public void EnableInputMenu() 
+    {
         lyricInputMenu.SetTitle("Input Lyrics");
         inputState = InputState.Full;
         string existingLyrics = GetTextRepresentation();
@@ -194,8 +217,10 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
     // Take dash-newline formatted lyrics from the lyric input menu and parse
     // them into phrases. Called when the user hits "submit" in the input menu.
     // Consider the input state!
-    public void InputLyrics() {
-        if (inputState == InputState.Full) {
+    public void InputLyrics() 
+    {
+        if (inputState == InputState.Full) 
+        {
             ClearPickupCommands();
             PickupAllPhrases();
             ClearPhraseObjects();
@@ -203,21 +228,26 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
 
             phrases.AddRange(CreatePhrases(inputLyrics));
 
-            if (phrases.Count > 0) {
+            if (phrases.Count > 0) 
+            {
                 currentPhrase = phrases[0];
             }
 
             // Update search order
             UpdateSortIds();
 
-        } else if (inputState == InputState.Phrase) {
+        } 
+        else if (inputState == InputState.Phrase) 
+        {
             ClearPickupCommands();
             string inputLyrics = lyricInputMenu.text ?? "";
             int inputIndex = phrases.BinarySearch(inputPhrase);
-            if (inputIndex >= 0) {
+            if (inputIndex >= 0) 
+            {
                 // Remove existing phrases
                 PickupFrom(inputPhrase, false, true);
-                for (int i = inputIndex; i < phrases.Count; i++) {
+                for (int i = inputIndex; i < phrases.Count; i++) 
+                {
                     UnityEngine.Object.Destroy(phrases[i].gameObject);
                 }
                 phrases.RemoveRange(inputIndex, phrases.Count - inputIndex);
@@ -230,131 +260,162 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
         }
     }
 
-    public void PickupFrom(LyricEditor2PhraseController start, bool pushToStack = true, bool forcePickupAll = false) {
-        if (forcePickupAll || onePhrasePickedUp || start.numSyllables == 1 || HasFollowingLyrics(start)) {
+    public void PickupFrom(LyricEditor2PhraseController start, bool pushToStack = true, bool forcePickupAll = false) 
+    {
+        if (forcePickupAll || onePhrasePickedUp || start.numSyllables == 1 || HasFollowingLyrics(start)) 
+        {
             List<MoonscraperEngine.ICommand> commands = new List<MoonscraperEngine.ICommand>();
             int startIndex = phrases.BinarySearch(start);
-            if (startIndex >= 0) {
-                for (int i = startIndex; i < phrases.Count; i++) {
-                    if (phrases[i].anySyllablesPlaced) {
+            if (startIndex >= 0) 
+            {
+                for (int i = startIndex; i < phrases.Count; i++) 
+                {
+                    if (phrases[i].anySyllablesPlaced) 
+                    {
                         commands.Add(phrases[i].Pickup());
                     }
                 }
             }
             currentPhrase = GetNextUnfinishedPhrase();
             // Invoke commands
-            if (commands.Count > 0) {
+            if (commands.Count > 0) 
+            {
                 var batchedCommands = new BatchedICommand(commands);
                 var pickupFromCommand = new PickupFromCommand(batchedCommands, RefreshAfterPickupFrom);
-                if (pushToStack) {
+                if (pushToStack) 
+                {
                     commandStackPushes.Add(pickupFromCommand);
-                    ChartEditor.Instance.commandStack.Push(pickupFromCommand);
-                } else {
+                    m_commandStack.Push(pickupFromCommand);
+                } 
+                else 
+                {
                     pickupFromCommand.Invoke();
                 }
             }
             onePhrasePickedUp = true;
-        } else if (start.anySyllablesPlaced) {
+        } 
+        else if (start.anySyllablesPlaced) 
+        {
             ClearPickupCommands();
             start.PickupLastSyllable();
             onePhrasePickedUp = true;
             currentPhrase = GetNextUnfinishedPhrase();
-            if (!playbackActive) {
+            if (!playbackActive) 
+            {
                 AutoPlacePhraseStartEnd(start);
             }
         }
     }
 
     // Opens the lyric input menu to edit the given lyrics
-    public void EditPhrase(LyricEditor2PhraseController phrase) {
+    public void EditPhrase(LyricEditor2PhraseController phrase) 
+    {
         inputPhrase = phrase;
         inputState = InputState.Phrase;
         string rep = "";
         int startIndex = phrases.BinarySearch(phrase);
-        for (int i = startIndex; i >= 0 && i < phrases.Count; i++) {
+        for (int i = startIndex; i >= 0 && i < phrases.Count; i++) 
+        {
             rep += phrases[i].GetTextRepresentation();
         }
         EnableInputMenu(rep, title: (startIndex < phrases.Count - 1) ? "Edit Phrases" : "Edit Phrase");
     }
 
-    public void OnStateChanged(in ChartEditor.State newState) {
-        if (!isActiveAndEnabled) return;
+    public void OnStateChanged(in ChartEditor.State newState) 
+    {
+        if (!isActiveAndEnabled)
+        {
+            return;
+        }
 
         autoScroller.enabled = playbackActive;
         playbackScrolling = playbackActive;
-        if (playbackActive) {
-            if (!IsLegalToPlaceNow()) {
+        if (playbackActive) 
+        {
+            if (!IsLegalToPlaceNow()) 
+            {
                 StartPlaybackScroll();
-            } else {
+            } 
+            else 
+            {
                 autoScroller.ScrollTo(currentPhrase?.rectTransform);
             }
-        } else {
+        } 
+        else 
+        {
             lastPlaybackTarget?.PlaybackHighlight(null);
         }
     }
 
-    public void onCommandStackPush(in MoonscraperEngine.ICommand command) {
+    public void onCommandStackPush(in MoonscraperEngine.ICommand command) 
+    {
         UnityEngine.Debug.Assert(command is PickupFromCommand, "Trying to push a non-lyric editor command onto the lyrics editor stack! Did you miss a call to ChartEditor.Instance.SetDefaultCommandStack?");
 
-        if (!(command is PickupFromCommand c && commandStackPushes.Contains(c))) {
+        if (!(command is PickupFromCommand c && commandStackPushes.Contains(c))) 
+        {
             gameObject.SetActive(false);
-        } else {
+        } 
+        else 
+        {
             numCommandStackPushes++;
         }
     }
 
-    public void onCommandStackPop(in MoonscraperEngine.ICommand command) {
+    public void onCommandStackPop(in MoonscraperEngine.ICommand command) 
+    {
         UnityEngine.Debug.Assert(command is PickupFromCommand, "Trying to pop a non-lyric editor command from the lyrics editor stack! Did you miss a call to ChartEditor.Instance.SetDefaultCommandStack?");
 
-        if (!(command is PickupFromCommand c && commandStackPushes.Contains(c))) {
+        if (!(command is PickupFromCommand c && commandStackPushes.Contains(c))) 
+        {
             gameObject.SetActive(false);
-        } else {
+        } 
+        else 
+        {
             numCommandStackPushes--;
         }
     }
 
-    public void Reset() {
+    public void OnSongLoaded() 
+    {
         savedPlacedSyllables = "";
         savedUnplacedSyllables = "";
         numCommandStackPushes = 0;
-        ClearPhraseObjects();
-        OnEnable();
+
+        // Close the lyric editor, prevent stomping over the active command stack
+        CloseLyricEditor();
     }
 
-    void OnEnable() {
-        ChartEditor.Instance.SetActiveCommandStack(m_commandStack);
+    public void OnChartLoaded()
+    {
+        // Close the lyric editor, prevent stomping over the active command stack
+        CloseLyricEditor();
+    }
 
-        // Create a new edit command set
-        editCommands = new SongEditCommandSet();
-        ImportExistingLyrics();
-        AddSavedSyllables();
-        currentPhrase = GetNextUnfinishedPhrase();
-        // Activate auto-scrolling if playback is active on lyric editor enable
-        autoScroller.enabled = playbackActive;
-
+    void OnEnable() 
+    {
+        Reset();
         UnityEngine.Debug.Log("Opened lyric editor");
     }
 
-    void OnDisable() {
+    void OnDisable() 
+    {
         // Save lyrics
         SaveUnplacedSyllables();
         SavePlacedSyllables();
-        // Place phrase_end for current phrase if it hasn't been placed
-        if (currentPhrase != null && !currentPhrase.phraseEndPlaced && currentPhrase.anySyllablesPlaced) {
-            // Ensure valid placement
-            AutoPlacePhraseEnd(currentPhrase);
-        }
+
         ClearPhraseObjects();
         autoScroller.enabled = false;
         // Remove command stack commands
         ClearPickupCommands();
         // Push batched edits to command stack
 
-        ChartEditor.Instance.SetDefaultCommandStack();
-
-        if (!editCommands.isEmpty) {
-            // Push the finalised commands back onto the primary stack
-            ChartEditor.Instance.commandStack.Push(editCommands);
+        if (ChartEditor.InstanceExists)
+        {
+            if (!editCommands.isEmpty) 
+            {
+                // Push the finalised commands back onto the primary stack
+                ChartEditor.Instance.commandStack.Push(editCommands);
+            }
         }
 
         editCommands = null; // Release memory, don't wait for the next OnEnable call
@@ -363,17 +424,20 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
         UnityEngine.Debug.Log("Closed lyric editor");
     }
 
-    void Start() {
+    void Start() 
+    {
         phraseTemplate.gameObject.SetActive(false);
 
         ChartEditor.Instance.events.editorStateChangedEvent.Register(OnStateChanged);
-        ChartEditor.Instance.events.songLoadedEvent.Register(Reset);
+        ChartEditor.Instance.events.songLoadedEvent.Register(OnSongLoaded);
+        ChartEditor.Instance.events.chartReloadedEvent.Register(OnChartLoaded);
 
         m_commandStack.onPush.Register(onCommandStackPush);
         m_commandStack.onPop.Register(onCommandStackPop);
     }
 
-    void Update() {
+    void Update() 
+    {
         if (MSChartEditorInput.GetInputDown(MSChartEditorInputActions.LyricEditorSetTime))
         {
             PlaceNextLyric();
@@ -383,13 +447,31 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
             StopPlaceNextLyric();
         }
 
-        if (playbackScrolling) {
+        if (playbackScrolling) 
+        {
             PlaybackScroll(false);
         }
     }
 
-    static bool HasLyricEvents(List<SongEditCommand> commands) {
-        foreach (SongEditCommand c in commands) {
+    void Reset()
+    {
+        editCommands = new SongEditCommandSet();
+        ImportExistingLyrics();
+        AddSavedSyllables();
+        currentPhrase = GetNextUnfinishedPhrase();
+        // Activate auto-scrolling if playback is active on lyric editor enable
+        autoScroller.enabled = playbackActive;
+    }
+
+    void CloseLyricEditor()
+    {
+        gameObject.SetActive(false);
+    }
+
+    static bool HasLyricEvents(List<SongEditCommand> commands) 
+    {
+        foreach (SongEditCommand c in commands) 
+        {
             if (HasLyricEvents(c)) {
                 return true;
             }
@@ -398,15 +480,19 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
         return false;
     }
 
-    static bool HasLyricEvents(SongEditCommand command) {
+    static bool HasLyricEvents(SongEditCommand command) 
+    {
         // Check for batched commands
-        if (command is BatchedSongEditCommand batched && HasLyricEvents(batched.GetSongEditCommands())) {
+        if (command is BatchedSongEditCommand batched && HasLyricEvents(batched.GetSongEditCommands())) 
+        {
             return true;
         }
         // Not a batched command
         var songObjects = command.GetSongObjects();
-        foreach (SongObject o in songObjects) {
-            if (o is Event e && IsLyricEvent(e)) {
+        foreach (SongObject o in songObjects) 
+        {
+            if (o is Event e && IsLyricEvent(e)) 
+            {
                 return true;
             }
         }
@@ -414,19 +500,26 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
         return false;
     }
 
-    static bool IsLyricEvent(Event selectedEvent) {
+    static bool IsLyricEvent(Event selectedEvent) 
+    {
         if (selectedEvent.IsLyric() ||
                 selectedEvent.title.Equals(LyricEditor2PhraseController.c_phraseStartKeyword) ||
-                selectedEvent.title.Equals(LyricEditor2PhraseController.c_phraseEndKeyword)) {
+                selectedEvent.title.Equals(LyricEditor2PhraseController.c_phraseEndKeyword)) 
+        {
             return true;
-        } else {
+        } 
+        else 
+        {
             return false;
         }
     }
 
-    static bool MakesValidPhrase (List<Event> potentialPhrase) {
-        for (int i = 0; i < potentialPhrase.Count; i++) {
-            if (potentialPhrase[i].IsLyric()) {
+    static bool MakesValidPhrase (List<Event> potentialPhrase) 
+    {
+        for (int i = 0; i < potentialPhrase.Count; i++) 
+        {
+            if (potentialPhrase[i].IsLyric()) 
+            {
                 return true;
             }
         }
@@ -438,40 +531,56 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
     // tick; if two Events have the same tick, then lyric events should be
     // sorted before phrase_end and after phrase_start events. Unrelated events
     // can be sorted alphabetically using String.Compare()
-    static int CompareEditorEvents (Event event1, Event event2) {
-        if (event1 == null && event2 == null) {
+    static int CompareEditorEvents (Event event1, Event event2) 
+    {
+        if (event1 == null && event2 == null) 
+        {
             // Both events null and are equivalent
             return 0;
-        } else if (event1 == null) {
+        } 
+        else if (event1 == null) 
+        {
             // event1 null
             return 1;
-        } else if (event2 == null) {
+        } 
+        else if (event2 == null) 
+        {
             // event2 null
             return -1;
-        } else if (event1.tick != event2.tick) {
+        } 
+        else if (event1.tick != event2.tick) 
+        {
             // Two events at different ticks
             return event1.tick > event2.tick ? 1 : -1;
-        } else if (event1.title.Equals(LyricEditor2PhraseController.c_phraseStartKeyword) || event2.title.Equals(LyricEditor2PhraseController.c_phraseEndKeyword)) {
+        } 
+        else if (event1.title.Equals(LyricEditor2PhraseController.c_phraseStartKeyword) || event2.title.Equals(LyricEditor2PhraseController.c_phraseEndKeyword)) 
+        {
             // Two events at the same tick, event1 is phrase_start or event2 is phrase_end
             return -1;
-        } else if (event2.title.Equals(LyricEditor2PhraseController.c_phraseStartKeyword) || event1.title.Equals(LyricEditor2PhraseController.c_phraseEndKeyword)) {
+        } 
+        else if (event2.title.Equals(LyricEditor2PhraseController.c_phraseStartKeyword) || event1.title.Equals(LyricEditor2PhraseController.c_phraseEndKeyword)) 
+        {
             // Two events at the same tick, event1 is phrase_end or event2 is phrase_start
             return 1;
-        } else {
+        } 
+        else 
+        {
             // Two events at the same tick, neither is phrase_start or phrase_end
             return System.String.Compare(event1.title, event2.title);
         }
     }
 
     // Import existing lyric events from the current song. Called in Start()
-    void ImportExistingLyrics() {
-
+    void ImportExistingLyrics() 
+    {
         // Use CompareEditorEvents (below) to sort events, then group events into
         // sections by looking for phrase_start events
         List<Event> importedEvents = new List<Event>();
 
-        foreach (Event eventObject in ChartEditor.Instance.currentSong.events) {
-            if (IsLyricEvent(eventObject)) {
+        foreach (Event eventObject in ChartEditor.Instance.currentSong.events) 
+        {
+            if (IsLyricEvent(eventObject)) 
+            {
                 importedEvents.Add(eventObject);
             }
         }
@@ -479,30 +588,41 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
         importedEvents.Sort(CompareEditorEvents);
 
         List<Event> tempEvents = new List<Event>();
-        for (int i = 0; i < importedEvents.Count; i++) {
+        for (int i = 0; i < importedEvents.Count; i++) 
+        {
             Event currentEvent = importedEvents[i];
-            if (currentEvent.title.TrimEnd().Equals(LyricHelper.LYRIC_EVENT_PREFIX.TrimEnd())) {
+            if (currentEvent.title.TrimEnd().Equals(LyricHelper.LYRIC_EVENT_PREFIX.TrimEnd())) 
+            {
                 var deleteCommand = new SongEditDelete(currentEvent);
                 deleteCommand.Invoke();
                 editCommands.Add(deleteCommand);
                 continue;
             }
+
             tempEvents.Add(currentEvent);
-            if (currentEvent.title.Equals(LyricEditor2PhraseController.c_phraseEndKeyword) || i == importedEvents.Count - 1 ||
-                    (importedEvents[i+1].title.Equals(LyricEditor2PhraseController.c_phraseStartKeyword))) {
-                if (MakesValidPhrase(tempEvents)) {
+
+            if (currentEvent.title.Equals(LyricEditor2PhraseController.c_phraseEndKeyword) 
+                || i == importedEvents.Count - 1 
+                || (importedEvents[i+1].title.Equals(LyricEditor2PhraseController.c_phraseStartKeyword))) 
+            {
+                if (MakesValidPhrase(tempEvents)) 
+                {
                     LyricEditor2PhraseController newPhrase = Instantiate(phraseTemplate, phraseTemplate.transform.parent).GetComponent<LyricEditor2PhraseController>();
                     newPhrase.InitializeSyllables(tempEvents);
                     phrases.Add(newPhrase);
                     newPhrase.gameObject.SetActive(true);
-                } else {
+                } 
+                else 
+                {
                     // phrase has no associated lyrics, delete it
-                    foreach (var e in tempEvents) {
+                    foreach (var e in tempEvents) 
+                    {
                         var deleteCommand = new SongEditDelete(e);
                         deleteCommand.Invoke();
                         editCommands.Add(deleteCommand);
                     }
                 }
+
                 // No lyrics in the current phrase, clear temp events to avoid pollution with extra phrase events
                 tempEvents.Clear();
             }
@@ -510,33 +630,34 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
 
         // Update search order
         UpdateSortIds();
-
-        // Check to ensure all fully-placed phrases have their phrase_start and
-        // phrase_end events set, if appropriate
-        for(int i = 0; i < phrases.Count; i++) {
-            LyricEditor2PhraseController currentPhrase = phrases[i];
-            AutoPlacePhraseStartEnd(currentPhrase);
-        }
     }
 
-    void AutoPlacePhraseStartEnd(LyricEditor2PhraseController currentPhrase) {
+    void AutoPlacePhraseStartEnd(LyricEditor2PhraseController currentPhrase) 
+    {
         if ((currentPhrase.allSyllablesPlaced && !currentPhrase.phraseStartPlaced) ||
-              (currentPhrase.GetFirstEventTick() < currentPhrase.startTick)) {
+              (currentPhrase.GetFirstEventTick() < currentPhrase.startTick)) 
+        {
             AutoPlacePhraseStart(currentPhrase);
         }
+
         // Check for phrase_end is a little more complex, only auto-place
         // phrase_end if the spacing between phrases is small enough
         var nextPhrase = GetNextPhrase(currentPhrase);
-        if (currentPhrase.allSyllablesPlaced && !currentPhrase.phraseEndPlaced) {
-            if (nextPhrase == null) {
+        if (currentPhrase.allSyllablesPlaced && !currentPhrase.phraseEndPlaced) 
+        {
+            if (nextPhrase == null) 
+            {
                 AutoPlacePhraseEnd(currentPhrase);
-            } else {
+            } 
+            else 
+            {
                 uint nextPhraseStart = (uint)nextPhrase.GetFirstEventTick();
                 float nextPhraseStartTime = ChartEditor.Instance.currentSong.TickToTime(nextPhraseStart);
                 uint thisPhraseEnd = PhraseEndAutoSpacer(currentPhrase);
                 float thisPhraseEndTime = ChartEditor.Instance.currentSong.TickToTime(thisPhraseEnd);
                 // UnityEngine.Debug.LogFormat("Time difference was calculated to be {0} (from nextPhraseStartTime {1} and thisPhraseEnd {2})", (nextPhraseStartTime - thisPhraseEndTime), nextPhraseStartTime, thisPhraseEndTime);
-                if ((nextPhraseStartTime - thisPhraseEndTime) >= Globals.gameSettings.lyricEditorSettings.phaseEndThreashold) {
+                if ((nextPhraseStartTime - thisPhraseEndTime) >= Globals.gameSettings.lyricEditorSettings.phaseEndThreashold) 
+                {
                     AutoPlacePhraseEnd(currentPhrase);
                 }
             }
@@ -545,12 +666,17 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
 
     // Add phrases from last session, if the other imported lyrics match the
     // previously-stored lyrics
-    void AddSavedSyllables() {
-        if (savedUnplacedSyllables.Length != 0 && GetTextRepresentation().Equals(savedPlacedSyllables)) {
+    void AddSavedSyllables() 
+    {
+        UnityEngine.Debug.Log("savedUnplacedSyllables: " + savedUnplacedSyllables);
+        UnityEngine.Debug.Log("phrase text representation: " + GetTextRepresentation());
+        if (savedUnplacedSyllables.Length != 0 && GetTextRepresentation().Equals(savedPlacedSyllables)) 
+        {
             int firstNewline = savedUnplacedSyllables.IndexOf('\n');
             string firstLine = savedUnplacedSyllables.Substring(0, firstNewline);
             List<List<string>> firstLineSyllablesRaw = ParseLyrics(firstLine);
-            if (firstLineSyllablesRaw.Count > 0) {
+            if (firstLineSyllablesRaw.Count > 0) 
+            {
                 List<string> firstLineSyllables = firstLineSyllablesRaw[0];
                 phrases[phrases.Count-1].AddSyllables(firstLineSyllables);
                 phrases[phrases.Count-1].PickupPhraseEnd();
@@ -565,8 +691,10 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
 
     // Destroy all phrase GameObjects and dereference their corresponding
     // phrase controller components
-    void ClearPhraseObjects() {
-        foreach (LyricEditor2PhraseController controller in phrases) {
+    void ClearPhraseObjects() 
+    {
+        foreach (LyricEditor2PhraseController controller in phrases) 
+        {
             UnityEngine.Object.Destroy(controller.gameObject);
         }
         phrases.Clear();
@@ -574,7 +702,8 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
 
     // Display input field with custom prepopulated field; function is called
     // internally only, so it should not update inputState
-    void EnableInputMenu(string prefilledLyrics, string title = "Input Lyrics") {
+    void EnableInputMenu(string prefilledLyrics, string title = "Input Lyrics") 
+    {
         lyricInputMenu.SetTitle(title);
         lyricInputMenu.Display(prefilledLyrics);
     }
@@ -582,16 +711,22 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
     // Check to see if the current tick is valid to place a lyric; if the
     // current time falls before the last element of currentPhrase, the
     // placement is considered invalid
-    bool IsLegalToPlaceNow() {
+    bool IsLegalToPlaceNow() 
+    {
         uint firstPhraseTick = GetFirstSafeTick(currentPhrase);
         uint snappedTick = currentSnappedTickPos;
-        if (snappedTick <= firstPhraseTick) {
+        if (snappedTick <= firstPhraseTick) 
+        {
             // Current position is before first safe tick
             return false;
-        } else if (snappedTick <= currentPhrase?.startTick || snappedTick <= currentPhrase?.GetLastEventTick()) {
+        } 
+        else if (snappedTick <= currentPhrase?.startTick || snappedTick <= currentPhrase?.GetLastEventTick()) 
+        {
             // Current position is in the middle of currentPhrase
             return false;
-        } else {
+        } 
+        else 
+        {
             // No illegal state found
             return true;
         }
@@ -600,24 +735,32 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
     // Find the most recent previous phrase which has been placed and return its
     // end tick. If no such phrase exists, return 0. If the passed targetPhrase
     // is null, return the last safe tick of the entire song.
-    uint GetFirstSafeTick(LyricEditor2PhraseController targetPhrase) {
+    uint GetFirstSafeTick(LyricEditor2PhraseController targetPhrase) 
+    {
         int currentPhraseIndex = phrases.BinarySearch(targetPhrase);
-        if (currentPhraseIndex == -1 || targetPhrase == null) {
+        if (currentPhraseIndex == -1 || targetPhrase == null) 
+        {
             currentPhraseIndex = phrases.Count;
         }
         // Iterate through up to the last 50 phrases
-        for (int i = currentPhraseIndex - 1; i > currentPhraseIndex - 51; i--) {
-            if (i < 0) {
+        for (int i = currentPhraseIndex - 1; i > currentPhraseIndex - 51; i--) 
+        {
+            if (i < 0) 
+            {
                 break;
             }
+
             // Check for any placed lyrics first, as a phrase with no unplaced
             // lyrics will not have an endTick or lastEventTick
-            if (phrases[i].anySyllablesPlaced) {
+            if (phrases[i].anySyllablesPlaced) 
+            {
                 uint? finalTick = phrases[i].endTick;
-                if (finalTick == null) {
+                if (finalTick == null) 
+                {
                     finalTick = phrases[i].GetLastEventTick();
                 }
-                if (finalTick != null) {
+                if (finalTick != null) 
+                {
                     return (uint)finalTick + 1;
                 }
             }
@@ -627,13 +770,16 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
     }
 
     // Gets the last safe tick a given phrase can legally occupy
-    uint GetLastSafeTick(LyricEditor2PhraseController targetPhrase) {
+    uint GetLastSafeTick(LyricEditor2PhraseController targetPhrase) 
+    {
         // Look for a next-up phrase
         int targetIndex = phrases.BinarySearch(targetPhrase);
-        if (targetIndex + 1 < phrases.Count) {
+        if (targetIndex + 1 < phrases.Count) 
+        {
             LyricEditor2PhraseController nextPhrase = phrases[targetIndex + 1];
             uint? nextPhraseStart = nextPhrase.startTick ?? nextPhrase.GetFirstEventTick();
-            if (nextPhraseStart != null) {
+            if (nextPhraseStart != null) 
+            {
                 return (uint)nextPhraseStart - 1;
             }
         }
@@ -642,7 +788,8 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
         return songEnd;
     }
 
-    void AutoPlacePhraseStart (LyricEditor2PhraseController phrase) {
+    void AutoPlacePhraseStart (LyricEditor2PhraseController phrase) 
+    {
         uint firstSafeTick = GetFirstSafeTick(phrase);
         // Tick calculation by set distance before first lyric
         uint startTick1 = (uint)(phrase.GetFirstEventTick() - (int)(songResolution / phrasePaddingMax * 4));
@@ -656,13 +803,15 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
     }
 
     // Place the end event of the target phrase automatically
-    void AutoPlacePhraseEnd (LyricEditor2PhraseController phrase) {
+    void AutoPlacePhraseEnd (LyricEditor2PhraseController phrase) 
+    {
         phrase.SetPhraseEnd(PhraseEndAutoSpacer(phrase));
     }
 
     // Returns the phrase-end auto-spacing when the phrase end event is placed
     // automatically
-    uint PhraseEndAutoSpacer(LyricEditor2PhraseController targetPhrase) {
+    uint PhraseEndAutoSpacer(LyricEditor2PhraseController targetPhrase) 
+    {
         uint lastSafeTick = GetLastSafeTick(targetPhrase);
         // Tick calculation by set distance
         uint endTick1 = (uint)(targetPhrase.GetLastEventTick() + (int)(songResolution / phrasePaddingMax * 4));
@@ -680,16 +829,20 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
         return previousPhraseIndex >= 0 ? phrases[previousPhraseIndex] : null;
     }
 
-    LyricEditor2PhraseController GetNextPhrase(LyricEditor2PhraseController phrase) {
+    LyricEditor2PhraseController GetNextPhrase(LyricEditor2PhraseController phrase) 
+    {
         int nextIndex = phrases.IndexOf(phrase) + 1;
         return nextIndex < phrases.Count ? phrases[nextIndex] : null;
     }
 
     // Get the next phrase which does not yet have all its syllables placed
-    LyricEditor2PhraseController GetNextUnfinishedPhrase() {
-        for (int i = 0; i < phrases.Count; i++) {
+    LyricEditor2PhraseController GetNextUnfinishedPhrase() 
+    {
+        for (int i = 0; i < phrases.Count; i++) 
+        {
             LyricEditor2PhraseController currentPhrase = phrases[i];
-            if (!currentPhrase.allSyllablesPlaced) {
+            if (!currentPhrase.allSyllablesPlaced) 
+            {
                 return currentPhrase;
             }
         }
@@ -698,21 +851,26 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
     }
 
     // Checks whether a phrase has any subsequent placed lyrics
-    bool HasFollowingLyrics(LyricEditor2PhraseController phrase) {
+    bool HasFollowingLyrics(LyricEditor2PhraseController phrase) 
+    {
         int phraseIndex = phrases.BinarySearch(phrase);
-        if (phraseIndex == phrases.Count - 1) {
-            return false;
+        if (phraseIndex == phrases.Count - 1) 
+        {
             // Phrase is last
+            return false;
         }
-        else {
+        else 
+        {
             return phrases[phraseIndex + 1].anySyllablesPlaced;
         }
     }
 
     // Pickup all phrases; not revokable, as references to phrases and events
     // are lost when ClearPickupCommands() is called
-    void PickupAllPhrases() {
-        foreach (var phrase in phrases) {
+    void PickupAllPhrases() 
+    {
+        foreach (var phrase in phrases) 
+        {
             phrase.Pickup().Invoke();
         }
         ClearPickupCommands();
@@ -720,24 +878,30 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
 
     // Set the search IDs of all phrase controllers based on their position in
     // phrases
-    void UpdateSortIds() {
-        for (int i = 0; i < phrases.Count; i++) {
+    void UpdateSortIds() 
+    {
+        for (int i = 0; i < phrases.Count; i++) 
+        {
             phrases[i].sortID = i;
         }
     }
 
-    void UpdateDisplayOrder() {
-        for (int i = 0; i < phrases.Count; i++) {
+    void UpdateDisplayOrder() 
+    {
+        for (int i = 0; i < phrases.Count; i++) 
+        {
             phrases[i].transform.SetSiblingIndex(phrases[i].sortID);
         }
     }
 
     // Creates a list of LyricEditor2PhraseController objects from a string
     // input
-    List<LyricEditor2PhraseController> CreatePhrases(string inputLyrics) {
+    List<LyricEditor2PhraseController> CreatePhrases(string inputLyrics) 
+    {
         List<LyricEditor2PhraseController> createdPhrases = new List<LyricEditor2PhraseController>();
         List<List<string>> parsedLyrics = ParseLyrics(inputLyrics);
-        for (int i = 0; i < parsedLyrics.Count; i++) {
+        for (int i = 0; i < parsedLyrics.Count; i++) 
+        {
             LyricEditor2PhraseController newPhrase = UnityEngine.GameObject.Instantiate(phraseTemplate, phraseTemplate.transform.parent).GetComponent<LyricEditor2PhraseController>();
             newPhrase.InitializeSyllables(parsedLyrics[i]);
             createdPhrases.Add(newPhrase);
@@ -749,7 +913,8 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
     // Parse a string into a double string array (phrases of syllables) to be
     // given as phrase controller input. Does not have an implemented time-out
     // period in case of excessively long strings to be parsed.
-    List<List<string>> ParseLyrics(string inputString) {
+    List<List<string>> ParseLyrics(string inputString) 
+    {
         // Remove short tags (5 characters or less), plus any other < or > keys
         // inputString = Regex.Replace(inputString, "</?[^<>]{0,5}>|<|>", System.String.Empty);
         // Regex was NOT the answer
@@ -786,9 +951,11 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
 
     // Create a text representation of stored lyrics which can be pushed to the
     // input menu when the user wants to edit lyrics
-    string GetTextRepresentation() {
+    string GetTextRepresentation() 
+    {
         string rep = "";
-        for (int i = 0; i < phrases.Count; i++) {
+        for (int i = 0; i < phrases.Count; i++) 
+        {
             rep += phrases[i].GetTextRepresentation();
         }
         return rep.TrimEnd();
@@ -796,7 +963,8 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
 
     // Begin auto-scrolling for lyric playback (before the user can place more
     // phrases)
-    void StartPlaybackScroll() {
+    void StartPlaybackScroll() 
+    {
         playbackScrolling = true;
         lastPlaybackTargetIndex = 0;
         LyricEditor2PhraseController firstUnplacedPhrase = GetNextUnfinishedPhrase();
@@ -805,9 +973,11 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
     }
 
     // Auto-scroll during lyric playback
-    void PlaybackScroll(bool forceScroll) {
+    void PlaybackScroll(bool forceScroll) 
+    {
         // Check for playback end
-        if (currentTickPos >= playbackEndTick) {
+        if (ChartEditor.Instance.currentTickPos >= playbackEndTick) 
+        {
             playbackScrolling = false;
             currentPhrase = GetNextUnfinishedPhrase();
             autoScroller.ScrollTo(currentPhrase?.rectTransform);
@@ -816,10 +986,13 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
 
         // Find target phrase
         LyricEditor2PhraseController playbackTarget = lastPlaybackTarget;
-        for (int i = lastPlaybackTargetIndex; i < phrases.Count; i++) {
-            if (phrases[i].anySyllablesPlaced) {
+        for (int i = lastPlaybackTargetIndex; i < phrases.Count; i++) 
+        {
+            if (phrases[i].anySyllablesPlaced) 
+            {
                 uint endBound = phrases[i].endTick ?? PhraseEndAutoSpacer(phrases[i]);
-                if (currentTickPos < endBound) {
+                if (ChartEditor.Instance.currentTickPos < endBound) 
+                {
                     playbackTarget = phrases[i];
                     // update lastPlaybackTargetIndex
                     lastPlaybackTargetIndex = i;
@@ -828,34 +1001,40 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
             }
         }
         // Scroll to phrase
-        if (forceScroll || playbackTarget != lastPlaybackTarget) {
+        if (forceScroll || playbackTarget != lastPlaybackTarget) 
+        {
             autoScroller.ScrollTo(playbackTarget?.rectTransform);
             lastPlaybackTarget?.PlaybackHighlight(null);
         }
         // Update lastPlaybackTarget
         lastPlaybackTarget = playbackTarget;
         // Highlight syllables
-        playbackTarget.PlaybackHighlight(currentTickPos);
+        playbackTarget.PlaybackHighlight(ChartEditor.Instance.currentTickPos);
     }
 
-    void RefreshAfterPickupFrom() {
+    void RefreshAfterPickupFrom() 
+    {
         currentPhrase = GetNextUnfinishedPhrase();
     }
 
-    void ClearPickupCommands() {
+    void ClearPickupCommands() 
+    {
         // numCommandStackPushes gets decremented automatically, need to assign
         // to another variable first
         int pushesToDelete = numCommandStackPushes;
-        for (int i = 0; i < pushesToDelete; ++i) {
-            ChartEditor.Instance.commandStack.Pop();
+        for (int i = 0; i < pushesToDelete; ++i) 
+        {
+            m_commandStack.Pop();
         }
 
-        if (commandStackPushes.Count > 0) {
-            ChartEditor.Instance.commandStack.ResetTail();
+        if (commandStackPushes.Count > 0) 
+        {
+            m_commandStack.ResetTail();
         }
 
         // Need to redo the changes made in those pushes
-        for (int i = 0; i < pushesToDelete; ++i) {
+        for (int i = 0; i < pushesToDelete; ++i) 
+        {
             commandStackPushes[i].Invoke();
         }
 
@@ -864,39 +1043,50 @@ public class LyricEditor2Controller : UnityEngine.MonoBehaviour
     }
 
     // Create a string representation of all unplaced syllables
-    void SaveUnplacedSyllables() {
+    void SaveUnplacedSyllables() 
+    {
         savedUnplacedSyllables = "";
         var incompletePhrase = GetNextUnfinishedPhrase();
-        if (incompletePhrase != null) {
+        if (incompletePhrase != null) 
+        {
             int firstSearchIndex;
             // Check for some, but not all, syllables placed
-            if (incompletePhrase.anySyllablesPlaced && !incompletePhrase.allSyllablesPlaced) {
+            if (incompletePhrase.anySyllablesPlaced && !incompletePhrase.allSyllablesPlaced) 
+            {
                 savedUnplacedSyllables += incompletePhrase.GetTextRepresentation(onlyConsiderUnplaced: true);
                 firstSearchIndex = phrases.BinarySearch(incompletePhrase) + 1;
-            } else {
+            } 
+            else 
+            {
                 firstSearchIndex = phrases.BinarySearch(incompletePhrase);
                 savedUnplacedSyllables += "\n";
             }
 
             // Save fully-placed phrases
-            for (int i = firstSearchIndex; i < phrases.Count; i++) {
+            for (int i = firstSearchIndex; i < phrases.Count; i++) 
+            {
                 savedUnplacedSyllables += phrases[i].GetTextRepresentation();
             }
         }
     }
 
     // Create a string representation of all placed syllables
-    void SavePlacedSyllables() {
+    void SavePlacedSyllables() 
+    {
         savedPlacedSyllables = "";
         var incompletePhrase = GetNextUnfinishedPhrase();
-        if (incompletePhrase != null) {
+        if (incompletePhrase != null) 
+        {
             int unfinishedIndex = phrases.BinarySearch(incompletePhrase);
-            for (int i = 0; i < unfinishedIndex; i++) {
+            for (int i = 0; i < unfinishedIndex; i++) 
+            {
                 savedPlacedSyllables += phrases[i].GetTextRepresentation();
             }
             savedPlacedSyllables += incompletePhrase.GetTextRepresentation(onlyConsiderPlaced: true);
             savedPlacedSyllables = savedPlacedSyllables.TrimEnd();
-        } else {
+        } 
+        else 
+        {
             savedPlacedSyllables = GetTextRepresentation();
         }
     }

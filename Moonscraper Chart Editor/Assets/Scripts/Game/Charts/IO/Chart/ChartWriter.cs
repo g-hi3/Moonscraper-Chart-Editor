@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2016-2020 Alexander Ong
+// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
 // Chart file format specifications- https://docs.google.com/document/d/1v2v0U-9HQ5qHeccpExDOLJ5CMPZZ3QytPmAG5WF0Kzs/edit?usp=sharing
@@ -32,12 +32,33 @@ namespace MoonscraperChartEditor.Song.IO
         static readonly string s_chartHeaderTrackFormat = "[{0}{1}]" + Globals.LINE_ENDING + "{{" + Globals.LINE_ENDING;
 
         // Bi-directional dict lookups
-        static readonly Dictionary<Song.Instrument, string> c_instrumentToStrLookup = ChartIOHelper.c_instrumentStrToEnumLookup.ToDictionary((i) => i.Value, (i) => i.Key);
-        static readonly Dictionary<Song.Difficulty, string> c_difficultyToTrackNameLookup = ChartIOHelper.c_trackNameToTrackDifficultyLookup.ToDictionary((i) => i.Value, (i) => i.Key);
+        static readonly IReadOnlyDictionary<Song.Instrument, string> c_instrumentToStrLookup = ChartIOHelper.c_instrumentStrToEnumLookup.ToDictionary((i) => i.Value, (i) => i.Key);
+        static readonly IReadOnlyDictionary<Song.Difficulty, string> c_difficultyToTrackNameLookup = ChartIOHelper.c_trackNameToTrackDifficultyLookup.ToDictionary((i) => i.Value, (i) => i.Key);
 
-        static readonly Dictionary<int, int> c_guitarNoteToSaveNumberLookup = ChartIOHelper.c_guitarNoteNumLookup.ToDictionary((i) => i.Value, (i) => i.Key);
-        static readonly Dictionary<int, int> c_ghlNoteToSaveNumberLookup = ChartIOHelper.c_ghlNoteNumLookup.ToDictionary((i) => i.Value, (i) => i.Key);
-        static readonly Dictionary<Note.Flags, int> c_guitarFlagToNumLookup = ChartIOHelper.c_guitarFlagNumLookup.ToDictionary((i) => i.Value, (i) => i.Key);
+        static readonly IReadOnlyDictionary<int, int> c_guitarNoteToSaveNumberLookup = ChartIOHelper.c_guitarNoteNumLookup.ToDictionary((i) => i.Value, (i) => i.Key);
+        static readonly IReadOnlyDictionary<int, int> c_ghlNoteToSaveNumberLookup = ChartIOHelper.c_ghlNoteNumLookup.ToDictionary((i) => i.Value, (i) => i.Key);
+        static readonly IReadOnlyDictionary<Note.Flags, int> c_guitarFlagToNumLookup = ChartIOHelper.c_guitarFlagNumLookup.ToDictionary((i) => i.Value, (i) => i.Key);
+        public static readonly IReadOnlyDictionary<int, int> c_drumNoteToSaveNumberLookup = ChartIOHelper.c_drumNoteNumLookup.ToDictionary((i) => i.Value, (i) => i.Key);
+
+        public static readonly IReadOnlyDictionary<int, int> c_drumNoteAccentSaveLookup = new Dictionary<int, int>()
+        {
+            // { (int)Note.DrumPad.Kick       , ChartIOHelper.c_drumsAccentOffset + 0 },  // Reserved for kick accents, if those ever become a thing
+            { (int)Note.DrumPad.Red       , ChartIOHelper.c_drumsAccentOffset + 1 },
+            { (int)Note.DrumPad.Yellow    , ChartIOHelper.c_drumsAccentOffset + 2 },
+            { (int)Note.DrumPad.Blue      , ChartIOHelper.c_drumsAccentOffset + 3 },
+            { (int)Note.DrumPad.Orange    , ChartIOHelper.c_drumsAccentOffset + 4 },
+            { (int)Note.DrumPad.Green     , ChartIOHelper.c_drumsAccentOffset + 5 },
+        };
+
+        public static readonly IReadOnlyDictionary<int, int> c_drumNoteGhostSaveLookup = new Dictionary<int, int>()
+        {
+            // { (int)Note.DrumPad.Kick       , ChartIOHelper.c_drumsGhostOffset + 0 },  // Reserved for kick ghosts, if those ever become a thing
+            { (int)Note.DrumPad.Red       , ChartIOHelper.c_drumsGhostOffset + 1 },
+            { (int)Note.DrumPad.Yellow    , ChartIOHelper.c_drumsGhostOffset + 2 },
+            { (int)Note.DrumPad.Blue      , ChartIOHelper.c_drumsGhostOffset + 3 },
+            { (int)Note.DrumPad.Orange    , ChartIOHelper.c_drumsGhostOffset + 4 },
+            { (int)Note.DrumPad.Green     , ChartIOHelper.c_drumsGhostOffset + 5 },
+        };
 
         delegate void WriteAudioStreamSaveString(Song.AudioInstrument audio, string saveFormat);
 
@@ -61,24 +82,44 @@ namespace MoonscraperChartEditor.Song.IO
         // Link the method with which we should write our objects out with
         struct SongObjectWriteParameters
         {
+            private Song.Instrument m_instrument;
+
             public uint scaledTick;
             public float resolutionScaleRatio;
-            public Song.Instrument instrument;
+            public ChartIOHelper.TrackLoadType trackLoadType { get; private set; }
+            public Song.Instrument instrument
+            {
+                get { return m_instrument; }
+                set 
+                { 
+                    m_instrument = value;
+
+                    ChartIOHelper.TrackLoadType instrumentParsingType;
+                    if (!ChartIOHelper.c_instrumentParsingTypeLookup.TryGetValue(instrument, out instrumentParsingType))
+                    {
+                        instrumentParsingType = ChartIOHelper.TrackLoadType.Guitar;
+                    }
+
+                    trackLoadType = instrumentParsingType;
+                }
+            }
             public Song.Difficulty difficulty;
             public ExportOptions exportOptions;
             public ErrorReport errorReport;
         }
+
         delegate void AppendSongObjectData(SongObject so, in SongObjectWriteParameters writeParameters, StringBuilder output);
         static readonly Dictionary<SongObject.ID, AppendSongObjectData> c_songObjectWriteFnLookup = new Dictionary<SongObject.ID, AppendSongObjectData>()
-    {
-        { SongObject.ID.BPM, AppendBpmData },
-        { SongObject.ID.TimeSignature, AppendTsData },
-        { SongObject.ID.Event, AppendEventData },
-        { SongObject.ID.Section, AppendSectionData },
-        { SongObject.ID.Starpower, AppendStarpowerData },
-        { SongObject.ID.ChartEvent, AppendChartEventData },
-        { SongObject.ID.Note, AppendNoteData },
-    };
+        {
+            { SongObject.ID.BPM, AppendBpmData },
+            { SongObject.ID.TimeSignature, AppendTsData },
+            { SongObject.ID.Event, AppendEventData },
+            { SongObject.ID.Section, AppendSectionData },
+            { SongObject.ID.Starpower, AppendStarpowerData },
+            { SongObject.ID.DrumRoll, AppendDrumRollData },
+            { SongObject.ID.ChartEvent, AppendChartEventData },
+            { SongObject.ID.Note, AppendNoteData },
+        };
 
         public void Write(Song song, ExportOptions exportOptions, out ErrorReport errorReport)
         {
@@ -342,7 +383,7 @@ namespace MoonscraperChartEditor.Song.IO
             return saveString.ToString();
         }
 
-        static int GetSaveNoteNumber(int note, Dictionary<int, int> lookupDict)
+        static int GetSaveNoteNumber(int note, IReadOnlyDictionary<int, int> lookupDict)
         {
             int noteNumber;
             if (!lookupDict.TryGetValue(note, out noteNumber))
@@ -360,7 +401,7 @@ namespace MoonscraperChartEditor.Song.IO
 
         static int GetDrumsSaveNoteNumber(Note note)
         {
-            return GetSaveNoteNumber((int)note.drumPad, ChartIOHelper.c_drumNoteToSaveNumberLookup);
+            return GetSaveNoteNumber((int)note.drumPad, c_drumNoteToSaveNumberLookup);
         }
 
         static int GetGHLSaveNoteNumber(Note note)
@@ -379,6 +420,8 @@ namespace MoonscraperChartEditor.Song.IO
         static readonly string s_chartEventFormat = " = E {0}";
         static readonly string s_starpowerFormat = " = S " + ChartIOHelper.c_starpowerId + " {0}";
         static readonly string s_starpowerDrumFillFormat = " = S " + ChartIOHelper.c_starpowerDrumFillId + " {0}";
+        static readonly string s_drumRollStandardFormat = " = S " + ChartIOHelper.c_drumRollStandardId + " {0}";
+        static readonly string s_drumRollSpecialFormat = " = S " + ChartIOHelper.c_drumRollSpecialId + " {0}";
         static readonly string s_noteFormat = " = N {0} {1}";
 
         // Initial tick is automatically written
@@ -502,6 +545,14 @@ namespace MoonscraperChartEditor.Song.IO
             output.AppendFormat(saveFormat, (uint)Mathf.Round(sp.length * writeParameters.resolutionScaleRatio));
         }
 
+        static void AppendDrumRollData(SongObject songObject, in SongObjectWriteParameters writeParameters, StringBuilder output)
+        {
+            DrumRoll roll = songObject as DrumRoll;
+            string saveFormat = roll.type == DrumRoll.Type.Standard ? s_drumRollStandardFormat : s_drumRollSpecialFormat;
+
+            output.AppendFormat(saveFormat, (uint)Mathf.Round(roll.length * writeParameters.resolutionScaleRatio));
+        }
+
         static void AppendNoteData(SongObject songObject, in SongObjectWriteParameters writeParameters, StringBuilder output)
         {
             Note note = songObject as Note;
@@ -512,21 +563,35 @@ namespace MoonscraperChartEditor.Song.IO
 
             if (writeParameters.instrument != Song.Instrument.Unrecognised)
             {
-                if (instrument == Song.Instrument.Drums)
-                    fretNumber = GetDrumsSaveNoteNumber(note);
-
-                else if (instrument == Song.Instrument.GHLiveGuitar || instrument == Song.Instrument.GHLiveBass)
-                    fretNumber = GetGHLSaveNoteNumber(note);
-
-                else
-                    fretNumber = GetStandardSaveNoteNumber(note);
+                switch (writeParameters.trackLoadType)
+                {
+                    case ChartIOHelper.TrackLoadType.Drums:
+                        {
+                            fretNumber = GetDrumsSaveNoteNumber(note);
+                            break;
+                        }
+                    case ChartIOHelper.TrackLoadType.GHLiveGuitar:
+                        {
+                            fretNumber = GetGHLSaveNoteNumber(note);
+                            break;
+                        }
+                    case ChartIOHelper.TrackLoadType.Guitar:
+                    default:
+                        {
+                            fretNumber = GetStandardSaveNoteNumber(note);
+                            break;
+                        }
+                }
             }
             else
+            {
                 fretNumber = note.rawNote;
+            }
 
             // Write out the instrument+ version of the note if applicable
-            if (writeParameters.exportOptions.forced && (note.flags & Note.Flags.DoubleKick) != 0 && NoteFunctions.AllowedToBeDoubleKick(note, difficulty))
+            if (writeParameters.exportOptions.forced && note.flags.HasFlag(Note.Flags.DoubleKick) && NoteFunctions.AllowedToBeDoubleKick(note, difficulty))
             {
+                Debug.Assert(writeParameters.trackLoadType == ChartIOHelper.TrackLoadType.Drums, "Writing out double kick value on non-drums track");
                 fretNumber += ChartIOHelper.c_instrumentPlusOffset;
             }
 
@@ -541,16 +606,26 @@ namespace MoonscraperChartEditor.Song.IO
                     // Only need to get the flags of one note of a chord
                     if (note.next == null || (note.next != null && note.next.tick != note.tick))
                     {
-                        Note.Flags flagsToIgnore;
-                        if (!ChartIOHelper.c_drumNoteDefaultFlagsLookup.TryGetValue(note.rawNote, out flagsToIgnore))
+#if UNITY_EDITOR
+                        // Verify that there are no conflicting flags
+                        if (!ChartIOHelper.NoteFlagPriority.AreFlagsValidForAll(noteFlags, out var priority))
                         {
-                            flagsToIgnore = Note.Flags.None;
+                            Debug.Assert(priority != null);
+                            if (priority.blockingFlag != Note.Flags.None)
+                            {
+                                Debug.LogError($"Conflicting flags found during export. Higher priority: {priority.blockingFlag}, lower priority: {priority.flagToAdd}");
+                            }
+                            else if (priority.flagToRemove != Note.Flags.None)
+                            {
+                                Debug.LogError($"Conflicting flags found during export. Higher priority: {priority.flagToAdd}, lower priority: {priority.flagToRemove}");
+                            }
                         }
+#endif
 
                         // Write out forced flag
                         {
                             Note.Flags flagToTest = Note.Flags.Forced;
-                            if ((noteFlags & flagToTest) != 0)
+                            if (noteFlags.HasFlag(flagToTest))
                             {
                                 int value;
                                 if (c_guitarFlagToNumLookup.TryGetValue(flagToTest, out value))  // Todo, if different flags have different values for the same flags, we'll need to use different lookups
@@ -565,7 +640,7 @@ namespace MoonscraperChartEditor.Song.IO
                         // Write out tap flag
                         {
                             Note.Flags flagToTest = Note.Flags.Tap;
-                            if (!note.IsOpenNote() && (noteFlags & flagToTest) != 0)
+                            if (!note.IsOpenNote() && noteFlags.HasFlag(flagToTest))
                             {
                                 int value;
                                 if (c_guitarFlagToNumLookup.TryGetValue(flagToTest, out value))  // Todo, if different flags have different values for the same flags, we'll need to use different lookups
@@ -579,12 +654,39 @@ namespace MoonscraperChartEditor.Song.IO
                     }
                 }
 
-                // Write out cymbal flag for each note
                 if (writeParameters.instrument == Song.Instrument.Drums)
                 {
+                    // Write out accent/ghost flags
+                    {
+                        if (noteFlags.HasFlag(Note.Flags.ProDrums_Accent))
+                        {
+                            int value;
+                            if (c_drumNoteAccentSaveLookup.TryGetValue(note.rawNote, out value))
+                            {
+                                output.Append(Globals.LINE_ENDING);
+                                output.Append(Globals.TABSPACE + writeParameters.scaledTick);
+                                output.AppendFormat(s_noteFormat, value, 0);
+                            }
+                        }
+                        else
+                        {
+                            if (noteFlags.HasFlag(Note.Flags.ProDrums_Ghost))
+                            {
+                                int value;
+                                if (c_drumNoteGhostSaveLookup.TryGetValue(note.rawNote, out value))
+                                {
+                                    output.Append(Globals.LINE_ENDING);
+                                    output.Append(Globals.TABSPACE + writeParameters.scaledTick);
+                                    output.AppendFormat(s_noteFormat, value, 0);
+                                }
+                            }
+                        }
+                    }
+
+                    // Write out cymbal flag for each note
                     int writeValue = ChartIOHelper.c_proDrumsOffset;
                     int noteOffset;
-                    if (!ChartIOHelper.c_drumNoteToSaveNumberLookup.TryGetValue(note.rawNote, out noteOffset))
+                    if (!c_drumNoteToSaveNumberLookup.TryGetValue(note.rawNote, out noteOffset))
                     {
                         throw new Exception("Cannot find pro drum note offset for note " + note.drumPad.ToString());
                     }
@@ -597,8 +699,8 @@ namespace MoonscraperChartEditor.Song.IO
                         defaultFlagsForNote = Note.Flags.None;
                     }
 
-                    bool cymbalByDefault = (defaultFlagsForNote & Note.Flags.ProDrums_Cymbal) != 0;
-                    bool flaggedAsCymbal = (noteFlags & Note.Flags.ProDrums_Cymbal) != 0;
+                    bool cymbalByDefault = defaultFlagsForNote.HasFlag(Note.Flags.ProDrums_Cymbal);
+                    bool flaggedAsCymbal = noteFlags.HasFlag(Note.Flags.ProDrums_Cymbal);
                     bool writeCymbalFlag = cymbalByDefault != flaggedAsCymbal;
 
                     if (writeCymbalFlag && !note.IsOpenNote())

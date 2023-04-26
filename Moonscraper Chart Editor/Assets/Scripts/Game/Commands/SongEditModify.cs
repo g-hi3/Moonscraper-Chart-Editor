@@ -55,6 +55,8 @@ public class SongEditModify<T> : SongEditCommand where T : SongObject
         switch ((SongObject.ID)objectToCopyInto.classID)
         {
             case SongObject.ID.Note:
+                SongEditAdd.SetDrumRollsDirty(objectToCopyInto.tick, chart.chartObjects);
+                SongEditAdd.SetDrumRollsDirty(objectToCopyFrom.tick, chart.chartObjects);
                 (objectToCopyInto as Note).CopyFrom((objectToCopyFrom as Note));
                 break;
 
@@ -62,6 +64,10 @@ public class SongEditModify<T> : SongEditCommand where T : SongObject
                 SongEditAdd.SetNotesDirty(objectToCopyInto as Starpower, chart.chartObjects);
                 SongEditAdd.SetNotesDirty(objectToCopyFrom as Starpower, chart.chartObjects);
                 (objectToCopyInto as Starpower).CopyFrom((objectToCopyFrom as Starpower));
+                break;
+
+            case SongObject.ID.DrumRoll:
+                (objectToCopyInto as DrumRoll).CopyFrom((objectToCopyFrom as DrumRoll));
                 break;
 
             case SongObject.ID.ChartEvent:
@@ -121,6 +127,14 @@ public class SongEditModify<T> : SongEditCommand where T : SongObject
                     return null;
                 }
                 return chart.starPower[index];
+
+            case SongObject.ID.DrumRoll:
+                index = SongObjectHelper.FindObjectPosition(so as DrumRoll, chart.drumRoll);
+                if (index == SongObjectHelper.NOTFOUND)
+                {
+                    return null;
+                }
+                return chart.drumRoll[index];
 
             case SongObject.ID.ChartEvent:
                 index = SongObjectHelper.FindObjectPosition(so as ChartEvent, chart.events);

@@ -26,19 +26,46 @@ public class GroupSelectPanelController : MonoBehaviour
     [SerializeField]
     Button setNoteTap;
     [SerializeField]
+    Button setNoteTom;
+    [SerializeField]
     Button setNoteCymbal;
+    [SerializeField]
+    Button setNoteDyncamicsNone;
+    [SerializeField]
+    Button setNoteAccent;
+    [SerializeField]
+    Button setNoteGhost;
     [SerializeField]
     Button setDoubleKick;
     [SerializeField]
     Button altDoubleKick;
+    [SerializeField]
+    Text hitStrengthSubTitle;
+    [SerializeField]
+    Text kickTypeSubTitle;
 
     Dictionary<Chart.GameMode, Dropdown> laneSelectForGamemodeLookup = new Dictionary<Chart.GameMode, Dropdown>();
     Dictionary<Chart.GameMode, Dictionary<int, Dropdown>> laneSelectLaneCountOverrideLookup = new Dictionary<Chart.GameMode, Dictionary<int, Dropdown>>();
     Dropdown currentFretSelector = null;
 
+    Dictionary<MSChartEditorInputActions, Button> shortcutBindings;
+
     // Use this for initialization
     void Start () {
-        //fretSelectDropdown = transform.Find("Fret Select").GetComponent<Dropdown>();
+        shortcutBindings = new Dictionary<MSChartEditorInputActions, Button>()
+        {
+            { MSChartEditorInputActions.NoteSetNatural, setNoteNatural },
+            { MSChartEditorInputActions.NoteSetStrum, setNoteStrum },
+            { MSChartEditorInputActions.NoteSetHopo, setNoteHopo },
+            { MSChartEditorInputActions.NoteSetTap, setNoteTap},
+            { MSChartEditorInputActions.NoteSetTom, setNoteTom },
+            { MSChartEditorInputActions.NoteSetCymbal, setNoteCymbal },
+            { MSChartEditorInputActions.NoteSetDynamicsNone, setNoteDyncamicsNone },
+            { MSChartEditorInputActions.NoteSetAccent, setNoteAccent },
+            { MSChartEditorInputActions.NoteSetGhost, setNoteGhost },
+            { MSChartEditorInputActions.NoteSetDoubleKick, setDoubleKick },
+            { MSChartEditorInputActions.NoteSetAltDoubleKick, altDoubleKick },
+        };
 
         // Setup lane selector dictionaries and hide all selector varients
         {
@@ -92,7 +119,7 @@ public class GroupSelectPanelController : MonoBehaviour
     void Update()
     {
         if (!Services.IsTyping && !Globals.modifierInputActive)
-            Shortcuts();
+            UpdateShortcuts();
     }
 
     void OnLanesChanged(in int laneCount)
@@ -109,26 +136,30 @@ public class GroupSelectPanelController : MonoBehaviour
         bool drumsMode = Globals.drumMode;
         bool proDrumsMode = drumsMode && Globals.gameSettings.drumsModeOptions == GameSettings.DrumModeOptions.ProDrums;
         bool doubleKickActive = proDrumsMode && ChartEditor.Instance.currentDifficulty == Song.Difficulty.Expert;
+        setNoteNatural.gameObject.SetActive(!drumsMode);
         setNoteStrum.gameObject.SetActive(!drumsMode);
         setNoteHopo.gameObject.SetActive(!drumsMode);
         setNoteTap.gameObject.SetActive(!drumsMode);
+        setNoteTom.gameObject.SetActive(drumsMode);
         setNoteCymbal.gameObject.SetActive(proDrumsMode);
+        setNoteAccent.gameObject.SetActive(proDrumsMode);
+        setNoteDyncamicsNone.gameObject.SetActive(proDrumsMode);
+        setNoteGhost.gameObject.SetActive(proDrumsMode);
         setDoubleKick.gameObject.SetActive(doubleKickActive);
         altDoubleKick.gameObject.SetActive(doubleKickActive);
+        hitStrengthSubTitle.gameObject.SetActive(proDrumsMode);
+        kickTypeSubTitle.gameObject.SetActive(proDrumsMode);
     }
 
-    void Shortcuts()
+    void UpdateShortcuts()
     {
-        if (MSChartEditorInput.GetInputDown(MSChartEditorInputActions.NoteSetNatural))
-            setNoteNatural.onClick.Invoke();
-        else if (MSChartEditorInput.GetInputDown(MSChartEditorInputActions.NoteSetStrum))
-            setNoteStrum.onClick.Invoke();
-        else if (MSChartEditorInput.GetInputDown(MSChartEditorInputActions.NoteSetHopo))
-            setNoteHopo.onClick.Invoke();
-        else if (MSChartEditorInput.GetInputDown(MSChartEditorInputActions.NoteSetTap))
-            setNoteTap.onClick.Invoke();
-        else if (MSChartEditorInput.GetInputDown(MSChartEditorInputActions.NoteSetCymbal))
-            setNoteCymbal.onClick.Invoke();
+        foreach (var kv in shortcutBindings)
+        {
+            if (MSChartEditorInput.GetInputDown(kv.Key) && kv.Value.isActiveAndEnabled)
+            {
+                kv.Value.onClick.Invoke();
+            }
+        }
     }
 
     int GetOpenNoteForGameMode(Chart.GameMode gameMode)
@@ -267,12 +298,32 @@ public class GroupSelectPanelController : MonoBehaviour
         SetNoteType(Note.NoteType.Tap);
     }
 
-    public void SetCymbal()
+    public void SetTom()
     {
-        SetNoteType(Note.NoteType.Cymbal);
+        SetNoteType(Note.NoteType.Natural, Note.Flags.ProDrums_Accent | Note.Flags.ProDrums_Ghost);
     }
 
-    public void SetNoteType(Note.NoteType type)
+    public void SetCymbal()
+    {
+        SetNoteType(Note.NoteType.Cymbal, Note.Flags.ProDrums_Accent | Note.Flags.ProDrums_Ghost);
+    }
+
+    public void SetNoDynamics()
+    {
+        SetDynamics(Note.Flags.None, Note.Flags.ProDrums_Ghost | Note.Flags.ProDrums_Accent);
+    }
+
+    public void SetAccent()
+    {
+        SetDynamics(Note.Flags.ProDrums_Accent, Note.Flags.ProDrums_Ghost);
+    }
+
+    public void SetGhost()
+    {
+        SetDynamics(Note.Flags.ProDrums_Ghost, Note.Flags.ProDrums_Accent);
+    }
+
+    void SetNoteType(Note.NoteType type, Note.Flags flagsToKeep = Note.Flags.None)
     {
         List<SongEditCommand> songEditCommands = new List<SongEditCommand>();
         List<ChartObject> objectsToSelect = new List<ChartObject>();
@@ -284,6 +335,37 @@ public class GroupSelectPanelController : MonoBehaviour
                 Note note = chartObject as Note;
                 Note newNote = new Note(note);
                 newNote.flags = note.GetFlagsToSetType(type);
+                if (flagsToKeep != Note.Flags.None)
+                {
+                    newNote.flags |= note.flags & flagsToKeep;
+                }
+                songEditCommands.Add(new SongEditModifyValidated(note, newNote));
+                objectsToSelect.Add(newNote);
+            }
+        }
+
+        if (songEditCommands.Count > 0)
+        {
+            editor.commandStack.Push(new BatchedSongEditCommand(songEditCommands));
+        }
+    }
+
+    void SetDynamics(Note.Flags flag, Note.Flags flagToExclude)
+    {
+        List<SongEditCommand> songEditCommands = new List<SongEditCommand>();
+        List<ChartObject> objectsToSelect = new List<ChartObject>();
+
+        foreach (ChartObject chartObject in editor.selectedObjectsManager.currentSelectedObjects)
+        {
+            if (chartObject.classID == (int)SongObject.ID.Note)
+            {
+                Note note = chartObject as Note;
+                if (note.IsOpenNote())
+                    continue;
+                Note newNote = new Note(note);
+                newNote.flags |= flag;
+                if ((newNote.flags & flagToExclude) != Note.Flags.None)
+                    newNote.flags &= ~flagToExclude;
                 songEditCommands.Add(new SongEditModifyValidated(note, newNote));
                 objectsToSelect.Add(newNote);
             }

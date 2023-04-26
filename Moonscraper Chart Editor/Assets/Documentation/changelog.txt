@@ -1,3 +1,87 @@
+1.5.0.1
+    FIXES
+    -Fixed lyric editor error that occoured after changing instrument/difficulty or loading a new song and editing the chart.
+    -Removed lyric editor auto-phrase end placements to respect manual phrase end deletions.
+
+    CHANGES
+    -Added hotkeys to group select "Double Kick" and "Alt Double Kick" buttons
+    -Added extra debugging information for audio failures
+    -Midi solo end exporting now increases by 1 tick to compensate for exclusivily of midi files solo note behaviour. Midi file opening reduces solo end by 1 tick to compensate for this.
+
+1.5.0
+    FIXES
+    -Fixed relative pathing check that resulted in incorrect audio loading when opening the application by directly opening that file.
+    -Fixed non-note objects not being activated when placed on the last valid spot on the chart.
+
+1.4.10
+    FIXES
+    -Upon loading new audio, always clear to prevent previous audio leaking into new songs. Communicate audio loading failures to users.
+    -Fixed sp fill flag bleeding into onto non-drums track when changing charts.
+    -Strip leading and trailing newline chars from filename to fix save breaking and ban newline chars from metadata fields.
+
+1.4.9
+    CHANGES
+    -Read Midi "T1 GEMS" and "PART DRUMS_REAL_PS" tracks. Exclude Venue track.
+    -Implement legacy SP midi parsing. 
+
+1.4.8
+    FIXES
+    -Fixed highlights not rendering over drum rolls properly
+    -Fixed long drum rolls not rendering properly 
+    -Fixed rare disappearing starpower bug
+    -Fixed highlights not rendering over long drum rolls
+
+    NEW FEATURES
+    -Implemented tool select shortcut key for drum roll tool onto semicolon (;)
+    -Implemented drum roll dropdown shortcut keys on z and x
+    -Add midi support for note-based tap marker and ENHANCED_OPENS text event
+    -Fix to midi drum fill writing
+
+1.4.7
+    FIXES
+    -Fixed roll lanes visuals not updating when deleting notes
+    -Fixed hotkeys for note properties changes still being active outside of their expected game modes
+    -Drum roll textures now properly tile along the highway
+    -Fixed exception case when sometimes trying to refresh roll lane visuals
+
+    CHANGES
+    -Added colour to roll lane sprites
+    -Completely hide roll lane tool button if user is not editing a drums track.
+
+1.4.6
+    FIXES
+    -Fixed Guitar-based instruments charts saving data incorrectly
+    -Fixed rebinding menu "Escape to cancel" not functioning
+
+1.4.5
+    NEW FEATURES
+    -Added GHL Rhythm and GHL Co-op to instruments list
+    -Added ability to add and edit drum roll triggers
+
+    FIXES
+    -Fixed group fret selection dropdown option not functioning
+
+1.4.4
+    FIXES
+    -Application no longer deletes manually added drum roll triggers
+
+1.4.3.6
+    FIXES
+    -Import MIDI note 106 on Vocals as a vocals phrase
+    -Fixed sp tool retaining drum fill flag when switching to a different instrument
+    -Fixed exception when trying to parse raw decimal point as float in lyrics settings
+    -Fixed settings menu breaking when loading the lyric editor settings directly before menu initialisation
+    -Save now notification always pops up upon saving again
+    -Remove phrase validation for CH
+    -Disable keybinds while in the key bindings menu
+
+    NEW FEATURES
+    -Added diff_rhythm as default clone hero ini tag
+    -Added drum dynamics flags "Accent" and "Ghost"
+
+    CHANGES
+    -Replced drums "Natural" button with "Tom" button
+
 1.4.3.5
     FIXES
     -Fixed error popup halting shutdown process when shutdown isn't smooth.

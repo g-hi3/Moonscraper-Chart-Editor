@@ -12,7 +12,7 @@ public class ToolpaneButtonController : MonoBehaviour {
 
     void Start()
     {
-        ChartEditor.Instance.events.toolChangedEvent.Register(OnToolChangedEvent);
+        ChartEditor.Instance.events.toolChangedEvent.Register(RefreshInteractability);
 
         button = GetComponent<Button>();
         if (ChartEditor.Instance.toolManager.currentToolId == toolId)
@@ -20,17 +20,28 @@ public class ToolpaneButtonController : MonoBehaviour {
             Press();
 
             // We're not registered to the event in time when this is first fired. Make sure our icon is correct on startup.
-            OnToolChangedEvent();
+            RefreshInteractability();
         }
     }
 
-	// Update is called once per frame
-	void OnToolChangedEvent () {
-        bool isMyTool = ChartEditor.Instance.toolManager.currentToolId == toolId;
+    void OnDisable()
+    {
+        if (ChartEditor.InstanceExists)
+        {
+            bool isMyTool = ChartEditor.Instance.toolManager.currentToolId == toolId;
+            if (isMyTool)
+            {
+                ChartEditor.Instance.toolManager.ChangeTool(EditorObjectToolManager.ToolID.Cursor);
+            }
+        }
+    }
 
+    void RefreshInteractability() 
+    {
+        bool isMyTool = ChartEditor.Instance.toolManager.currentToolId == toolId;
         button.interactable = !isMyTool;
         enabled = isMyTool;
-	}
+    }
 
     // if the tool is this one, enable the script, else disable
     public void Press()

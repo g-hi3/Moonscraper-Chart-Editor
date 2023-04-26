@@ -42,5 +42,6 @@ Other distribution packagers can use the `PKGBUILD` file for reference.
 * Twitter- https://twitter.com/FireFox2000000
 
 ## License
-- See [attribution.txt](Assets/Documentation/attribution.txt) for third party libraries and resources included in this repository.
+- See [attribution.txt](https://github.com/FireFox2000000/Moonscraper-Chart-Editor/blob/master/Moonscraper%20Chart%20Editor/Assets/Documentation/attribution.txt) for third party libraries and resources included in this repository.
 - See [LICENSE](LICENSE).
+- The BASS audio library (a dependency of this application) is a commercial product. While it is free for non-commercial use, please ensure to obtain a valid licence if you plan on distributing any application using it commercially.

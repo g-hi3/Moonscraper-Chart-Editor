@@ -51,6 +51,10 @@ public class SongEditAdd : SongEditCommand
                 AddStarpower((Starpower)songObject, subActions);
                 break;
 
+            case ((int)SongObject.ID.DrumRoll):
+                AddDrumRoll((DrumRoll)songObject, subActions);
+                break;
+
             case ((int)SongObject.ID.ChartEvent):
                 AddChartEvent((ChartEvent)songObject, subActions);
                 break;
@@ -126,6 +130,8 @@ public class SongEditAdd : SongEditCommand
                 UnityEngine.Debug.LogError("Object just added was not a note");
             else
                 NoteFunctions.PerformPostChartInsertCorrections(justAdded, subActions, extendedSustainsEnabled);
+
+            SetDrumRollsDirty(note.tick, chart.chartObjects);
         }
         else
         {
@@ -141,6 +147,16 @@ public class SongEditAdd : SongEditCommand
         CapPrevAndNextPreInsert(sp, editor.currentChart, subActions);
 
         AddAndInvokeSubAction(new AddAction(sp), subActions);
+    }
+
+    static void AddDrumRoll(DrumRoll drumRoll, IList<BaseAction> subActions)
+    {
+        ChartEditor editor = ChartEditor.Instance;
+        TryRecordOverwrite(drumRoll, editor.currentChart.chartObjects, subActions);
+
+        CapPrevAndNextPreInsert(drumRoll, editor.currentChart, subActions);
+
+        AddAndInvokeSubAction(new AddAction(drumRoll), subActions);
     }
 
     static void AddChartEvent(ChartEvent chartEvent, IList<BaseAction> subActions)
@@ -288,6 +304,114 @@ public class SongEditAdd : SongEditCommand
                 if (sp.tick + sp.length > nextSp.tick)
                 {
                     sp.length = nextSp.tick - sp.tick;
+                }
+            }
+        }
+    }
+    #endregion
+
+    #region DrumRoll Helper Functions
+
+    public static void SetDrumRollsDirty(uint tickOfInterest, IList<ChartObject> chartObjects)
+    {
+        int position = SongObjectHelper.FindClosestPositionRoundedDown(tickOfInterest, chartObjects);
+
+        if (position != SongObjectHelper.NOTFOUND)
+        {
+            DrumRoll previousDrumRoll = null;
+            bool currentArrayPosIsDrumRoll = chartObjects[position] as DrumRoll == null;
+
+            // Find the previous drum roll
+            {
+                int previousIndex = currentArrayPosIsDrumRoll ? position - 1 : position;
+                while (previousIndex >= 0 && chartObjects[previousIndex].tick <= tickOfInterest)
+                {
+                    if (chartObjects[previousIndex].classID != (int)SongObject.ID.DrumRoll)
+                    {
+                        --previousIndex;
+                    }
+                    else
+                    {
+                        previousDrumRoll = chartObjects[previousIndex] as DrumRoll;
+                        UnityEngine.Debug.Assert(previousDrumRoll != null);
+                        break;
+                    }
+                }
+            }
+
+            if (previousDrumRoll != null && previousDrumRoll.controller)
+            {
+                previousDrumRoll.controller.SetDirty();
+            }
+        }
+    }
+
+    static void CapPrevAndNextPreInsert(DrumRoll drumRoll, Chart chart, IList<BaseAction> subActions)
+    {
+        int arrayPos = SongObjectHelper.FindClosestPosition(drumRoll, chart.chartObjects);
+
+        if (arrayPos != SongObjectHelper.NOTFOUND)       // Found an object that matches
+        {
+            DrumRoll previousDrumRoll = null;
+            DrumRoll nextDrumRoll = null;
+
+            bool currentArrayPosIsDrumRoll = chart.chartObjects[arrayPos] as DrumRoll == null;
+
+            // Find the previous drum roll
+            {
+                int previousIndex = currentArrayPosIsDrumRoll ? arrayPos - 1 : arrayPos;
+                while (previousIndex >= 0 && chart.chartObjects[previousIndex].tick < drumRoll.tick)
+                {
+                    DrumRoll maybeDrumRoll = chart.chartObjects[previousIndex] as DrumRoll;
+                    if (maybeDrumRoll == null)
+                    {
+                        --previousIndex;
+                    }
+                    else
+                    {
+                        previousDrumRoll = maybeDrumRoll;
+                        break;
+                    }
+                }
+            }
+
+            // Find the next drum roll
+            {
+                int nextDrumRollIndex = currentArrayPosIsDrumRoll ? arrayPos + 1 : arrayPos;
+                while (nextDrumRollIndex < chart.chartObjects.Count && chart.chartObjects[nextDrumRollIndex].tick > drumRoll.tick)
+                {
+                    DrumRoll maybeDrumRoll = chart.chartObjects[nextDrumRollIndex] as DrumRoll;
+                    if (maybeDrumRoll == null)
+                    {
+                        ++nextDrumRollIndex;
+                    }
+                    else
+                    {
+                        nextDrumRoll = maybeDrumRoll;
+                        break;
+                    }
+                }
+            }
+
+            if (previousDrumRoll != null)
+            {
+                // Cap previous sp
+                if (previousDrumRoll.tick + previousDrumRoll.length > drumRoll.tick)
+                {
+                    uint newLength = drumRoll.tick - previousDrumRoll.tick;
+                    DrumRoll newSp = new DrumRoll(previousDrumRoll.tick, newLength, previousDrumRoll.type);
+
+                    AddAndInvokeSubAction(new DeleteAction(previousDrumRoll), subActions);
+                    AddAndInvokeSubAction(new AddAction(newSp), subActions);
+                }
+            }
+
+            if (nextDrumRoll != null)
+            {
+                // Cap self
+                if (drumRoll.tick + drumRoll.length > nextDrumRoll.tick)
+                {
+                    drumRoll.length = nextDrumRoll.tick - drumRoll.tick;
                 }
             }
         }

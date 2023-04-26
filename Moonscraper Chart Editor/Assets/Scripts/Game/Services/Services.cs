@@ -87,19 +87,14 @@ public class Services : MonoBehaviour
         }
     }
 
-    static bool _IsTyping
+    bool _IsTyping
     {
         get
         {
-            if (
-                EventSystem.current.currentSelectedGameObject == null ||
-                (EventSystem.current.currentSelectedGameObject.GetComponent<InputField>() == null &&
-                EventSystem.current.currentSelectedGameObject.GetComponent<TMPro.TMP_InputField>() == null &&
-                EventSystem.current.currentSelectedGameObject.GetComponent<MS_TMPro_InputField>() == null)
-                )
-                return false;
-            else
-                return true;
+            return (EventSystem.current.currentSelectedGameObject != null &&
+                (EventSystem.current.currentSelectedGameObject.GetComponent<InputField>() != null ||
+                EventSystem.current.currentSelectedGameObject.GetComponent<TMPro.TMP_InputField>() != null ||
+                EventSystem.current.currentSelectedGameObject.GetComponent<MS_TMPro_InputField>() != null));
         }
     }
 
@@ -145,13 +140,13 @@ public class Services : MonoBehaviour
     public bool CanUndo()
     {
         ChartEditor editor = ChartEditor.Instance;
-        return !editor.commandStack.isAtStart && !editor.groupMove.movementInProgress;
+        return !editor.commandStack.isAtStart && !editor.groupMove.movementInProgress && !IsLyricEditorActive;
     }
 
     public bool CanRedo()
     {
         ChartEditor editor = ChartEditor.Instance;
-        return !editor.commandStack.isAtEnd && !editor.groupMove.movementInProgress;
+        return !editor.commandStack.isAtEnd && !editor.groupMove.movementInProgress && !IsLyricEditorActive;
     }
 
     public bool CanPlay()
@@ -271,6 +266,14 @@ public class Services : MonoBehaviour
         get
         {
             return uiServices.lyricEditor.isActiveAndEnabled;
+        }
+    }
+
+    public static bool IsBindingsMenuActive
+    {
+        get
+        {
+            return ChartEditor.Instance.uiServices.bindingsMenu.isActiveAndEnabled;
         }
     }
 }

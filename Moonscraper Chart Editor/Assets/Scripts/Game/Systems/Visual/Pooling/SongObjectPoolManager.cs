@@ -22,6 +22,7 @@ public class SongObjectPoolManager : SystemManagerState.MonoBehaviourSystem
 
     NotePool notePool;
     StarpowerPool spPool;
+    DrumRollPool drumRollPool;
     BPMPool bpmPool;
     TimesignaturePool tsPool;
     SectionPool sectionPool;
@@ -30,6 +31,7 @@ public class SongObjectPoolManager : SystemManagerState.MonoBehaviourSystem
 
     GameObject noteParent;
     GameObject starpowerParent;
+    GameObject drumRollParent;
     GameObject bpmParent;
     GameObject timesignatureParent;
     GameObject sectionParent;
@@ -38,6 +40,7 @@ public class SongObjectPoolManager : SystemManagerState.MonoBehaviourSystem
 
     List<Note> collectedNotesInRange = new List<Note>();
     List<Starpower> collectedStarpowerInRange = new List<Starpower>();
+    List<DrumRoll> collectedDrumRollsInRange = new List<DrumRoll>();
     List<Note> prevSustainCache = new List<Note>();
 
     public float? noteVisibilityRangeYPosOverride;
@@ -51,6 +54,7 @@ public class SongObjectPoolManager : SystemManagerState.MonoBehaviourSystem
 
         noteParent = new GameObject("Notes");
         starpowerParent = new GameObject("Starpowers");
+        drumRollParent = new GameObject("Drum Rolls");
         bpmParent = new GameObject("BPMs");
         timesignatureParent = new GameObject("Time Signatures");
         sectionParent = new GameObject("Sections");
@@ -62,6 +66,9 @@ public class SongObjectPoolManager : SystemManagerState.MonoBehaviourSystem
 
         spPool = new StarpowerPool(starpowerParent, editor.assets.starpowerPrefab, POOL_SIZE);
         starpowerParent.transform.SetParent(groupMovePool.transform);
+
+        drumRollPool = new DrumRollPool(drumRollParent, editor.assets.drumRollPrefab, POOL_SIZE);
+        drumRollParent.transform.SetParent(groupMovePool.transform);
 
         bpmPool = new BPMPool(bpmParent, editor.assets.bpmPrefab, POOL_SIZE);
         bpmParent.transform.SetParent(groupMovePool.transform);
@@ -94,7 +101,14 @@ public class SongObjectPoolManager : SystemManagerState.MonoBehaviourSystem
         if (Globals.viewMode == Globals.ViewMode.Chart)
         {
             if (editor.currentChart.starPower.Count > 0)
+            {
                 EnableSP(editor.currentChart.starPower);
+            }
+
+            if (editor.currentChart.drumRoll.Count > 0)
+            {
+                EnableDrumRoll(editor.currentChart.drumRoll);
+            }
 
             EnableChartEvents(editor.currentChart.events);
         }
@@ -116,6 +130,7 @@ public class SongObjectPoolManager : SystemManagerState.MonoBehaviourSystem
         {
             notePool.Reset();
             spPool.Reset();
+            drumRollPool.Reset();
             bpmPool.Reset();
             tsPool.Reset();
             sectionPool.Reset();
@@ -134,23 +149,23 @@ public class SongObjectPoolManager : SystemManagerState.MonoBehaviourSystem
     {
         bool extendedSustainsEnabled = Globals.gameSettings.extendedSustainsEnabled;
 
-        uint min_pos = editor.minPos;
+        uint minPos = editor.minPos;
         if (noteVisibilityRangeYPosOverride.HasValue)
         {
             uint gameplayPos = editor.currentSong.WorldYPositionToTick(noteVisibilityRangeYPosOverride.Value, editor.currentSong.resolution);
-            if (min_pos < gameplayPos)
-                min_pos = gameplayPos;
+            if (minPos < gameplayPos)
+                minPos = gameplayPos;
         }
 
         collectedNotesInRange.Clear();
         int index, length;
-        SongObjectHelper.GetRange(notes, min_pos, editor.maxPos, out index, out length);
+        SongObjectHelper.GetRange(notes, minPos, editor.maxPos, out index, out length);
         for (int i = index; i < index + length; ++i)
         {
             collectedNotesInRange.Add(notes[i]);
         }
 
-        if (min_pos == editor.minPos)
+        if (minPos == editor.minPos)
         {
             if (collectedNotesInRange.Count > 0)
             {
@@ -172,20 +187,23 @@ public class SongObjectPoolManager : SystemManagerState.MonoBehaviourSystem
                         --minArrayPos;
 
                     Note minNote = editor.currentChart.notes[minArrayPos];
-
-                    if (minNote.tick + minNote.length > editor.minPos && minNote.tick < editor.maxPos)
+                    bool rootBehindMin = minNote.tick < editor.minPos;
+                    bool tailAheadMin = (minNote.tick + minNote.length) >= editor.minPos;
+                    if (tailAheadMin && rootBehindMin)
                     {
                         foreach (Note note in minNote.chord)
                         {
-                            if (note.tick + note.length > editor.minPos)
+                            if ((note.tick + note.length) >= editor.minPos)
+                            {
                                 collectedNotesInRange.Add(note);
+                            }
                         }
                     }
 
                     NoteFunctions.GetPreviousOfSustains(prevSustainCache, minNote, extendedSustainsEnabled);
                     foreach (Note prevNote in prevSustainCache)
                     {
-                        if (prevNote.tick + prevNote.length > editor.minPos)
+                        if ((prevNote.tick + prevNote.length) >= editor.minPos)
                             collectedNotesInRange.Add(prevNote);
                     }
                 }
@@ -235,11 +253,16 @@ public class SongObjectPoolManager : SystemManagerState.MonoBehaviourSystem
             {
                 --arrayPos;
             }
+
             // Render previous sp sustain in case of overlap into current position
-            if (arrayPos >= 0 && editor.currentChart.starPower[arrayPos].tick + editor.currentChart.starPower[arrayPos].length > editor.minPos &&
-                (editor.currentChart.starPower[arrayPos].tick + editor.currentChart.starPower[arrayPos].length) < editor.maxPos)
+            if (arrayPos >= 0)
             {
-                collectedStarpowerInRange.Add(editor.currentChart.starPower[arrayPos]);
+                var sp = editor.currentChart.starPower[arrayPos];
+                bool tailAheadMin = (sp.tick + sp.length) >= editor.minPos;
+                if (tailAheadMin)
+                {
+                    collectedStarpowerInRange.Add(sp);
+                }
             }
         }
     }
@@ -248,6 +271,46 @@ public class SongObjectPoolManager : SystemManagerState.MonoBehaviourSystem
     {
         CollectStarpowerInViewRange(starpowers);
         spPool.Activate(collectedStarpowerInRange, 0, collectedStarpowerInRange.Count);
+    }
+
+    static void CollectDrumRollsInViewRange(IList<DrumRoll> drumRolls, IList<DrumRoll> results)
+    {
+        var editor = ChartEditor.Instance;
+
+        results.Clear();
+        int index, length;
+        SongObjectHelper.GetRange(drumRolls, editor.minPos, editor.maxPos, out index, out length);
+        for (int i = index; i < index + length; ++i)
+        {
+            results.Add(drumRolls[i]);
+        }
+
+        int arrayPos = SongObjectHelper.FindClosestPosition(editor.minPos, editor.currentChart.drumRoll);
+        if (arrayPos != SongObjectHelper.NOTFOUND)
+        {
+            // Find the back-most position
+            while (arrayPos > 0 && editor.currentChart.drumRoll[arrayPos].tick >= editor.minPos)
+            {
+                --arrayPos;
+            }
+
+            // Render previous drum roll in case of overlap into current position
+            if (arrayPos >= 0)
+            {
+                var drumRoll = editor.currentChart.drumRoll[arrayPos];
+                bool tailAheadMin = (drumRoll.tick + drumRoll.length) >= editor.minPos;
+                if (tailAheadMin)
+                {
+                    results.Add(drumRoll);
+                }
+            }
+        }
+    }
+
+    public void EnableDrumRoll(IList<DrumRoll> drumRolls)
+    {
+        CollectDrumRollsInViewRange(drumRolls, collectedDrumRollsInRange);
+        drumRollPool.Activate(collectedDrumRollsInRange, 0, collectedDrumRollsInRange.Count);
     }
 
     public void EnableBPM(IList<BPM> bpms)
@@ -294,6 +357,7 @@ public class SongObjectPoolManager : SystemManagerState.MonoBehaviourSystem
 
         SetInViewRangeDirty(chart.notes);
         SetInViewRangeDirty(chart.starPower);
+        SetInViewRangeDirty(chart.drumRoll);
         SetInViewRangeDirty(chart.events);
         SetInViewRangeDirty(song.eventsAndSections);
         SetInViewRangeDirty(song.syncTrack);
@@ -339,6 +403,17 @@ public class SongObjectPoolManager : SystemManagerState.MonoBehaviourSystem
         {
             if (collectedStarpowerInRange[i].controller)
                 collectedStarpowerInRange[i].controller.SetDirty();
+        }
+    }
+
+    public void SetInViewRangeDirty(IList<DrumRoll> songObjects)
+    {
+        CollectDrumRollsInViewRange(songObjects, collectedDrumRollsInRange);
+
+        for (int i = 0; i < collectedDrumRollsInRange.Count; ++i)
+        {
+            if (collectedDrumRollsInRange[i].controller)
+                collectedDrumRollsInRange[i].controller.SetDirty();
         }
     }
 

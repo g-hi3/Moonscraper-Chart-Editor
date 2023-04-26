@@ -234,6 +234,16 @@ public static class NoteFunctions {
         return note.IsOpenNote();
     }
 
+    public static bool AllowedToBeAccent(Note note)
+    {
+        return !note.IsOpenNote();
+    }
+
+    public static bool AllowedToBeGhost(Note note)
+    {
+        return !note.IsOpenNote();
+    }
+
     public static Note.Flags GetFlagsToSetType(this Note note, Note.NoteType type)
     {
         Note.Flags flags = Note.Flags.None;

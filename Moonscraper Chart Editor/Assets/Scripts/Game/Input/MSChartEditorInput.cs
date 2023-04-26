@@ -12,10 +12,9 @@ using MoonscraperEngine.Input;
  * 1. Add to the enum list
  * 2. Open Scenes/Config Editors/Input Editor
  * 3. Click on the Input Builder object and locate the Input Config Builder script
- * 4. Click the button "Load Config From File"
- * 5. Open the file /Assets/Database/InputPropertiesConfig.json
- * 6. The field InputProperties/Shortcut Input will now be populated. Scroll down to find your new action and set up the new properties
- * 7. Click the button "Save Config To File" and overwrite InputPropertiesConfig.json
+ * 4. Click the button "Load Config From File", which will load /Assets/Database/InputPropertiesConfig.json
+ * 5. The field InputProperties/Shortcut Input will now be populated. Scroll down to find your new action and set up the new properties
+ * 6. Click the button "Save Config To File" and overwrite InputPropertiesConfig.json
  */
 
 public enum MSChartEditorInputActions
@@ -52,7 +51,13 @@ public enum MSChartEditorInputActions
     NoteSetStrum,
     NoteSetHopo,
     NoteSetTap,
+    NoteSetTom,
     NoteSetCymbal,
+    NoteSetDynamicsNone,
+    NoteSetAccent,
+    NoteSetGhost,
+    NoteSetDoubleKick,
+    NoteSetAltDoubleKick,
     
     PlayPause,
 
@@ -78,9 +83,14 @@ public enum MSChartEditorInputActions
     ToggleNoteTap,
     ToggleNoteCymbal,
     ToggleNoteDoubleKick,
+    ToggleNoteAccent,
+    ToggleNoteGhost,
     ToggleStarpowerDrumsFillActivation,
     ToggleViewMode, 
-    
+
+    DrumRollSetSingle,
+    DrumRollSetDouble,
+
     ToolNoteBurst,
     ToolNoteHold,
     ToolSelectCursor,
@@ -91,6 +101,7 @@ public enum MSChartEditorInputActions
     ToolSelectTimeSignature,
     ToolSelectSection,
     ToolSelectEvent,
+    ToolSelectDrumRoll,
 
     ToolNoteLane1,
     ToolNoteLane2,
@@ -156,6 +167,10 @@ public static class MSChartEditorInput
 
             EditorToolGroupNote,
             EditorToolStarpower,
+            EditorToolGroupNoteGuitar,
+            EditorToolGroupNoteDrums,
+
+            EditorToolDrumRoll,
         }
 
         public static InteractionMatrix interactionMatrix = new InteractionMatrix(EnumX<CategoryType>.Count);
@@ -166,6 +181,9 @@ public static class MSChartEditorInput
             | (1 << (int)CategoryType.EditorToolGroupNote)
             | (1 << (int)CategoryType.EditorToolStarpower)
             | (1 << (int)CategoryType.Global)
+            | (1 << (int)CategoryType.EditorToolGroupNoteGuitar)
+            | (1 << (int)CategoryType.EditorToolGroupNoteDrums)
+            | (1 << (int)CategoryType.EditorToolDrumRoll)
             ;
         public static readonly int kGameplayCategoryMask = (1 << (int)CategoryType.GameplayGuitar) | (1 << (int)CategoryType.GameplayDrums) | (1 << (int)CategoryType.GameplayDrumsPro);
         public static readonly int kGameplayGuitarCategoryMask = (1 << (int)CategoryType.GameplayGuitar);
@@ -176,8 +194,11 @@ public static class MSChartEditorInput
         {
             interactionMatrix.SetInteractableAll((int)CategoryType.Global);
 
+            interactionMatrix.SetInteractable((int)CategoryType.EditorToolGroupNoteGuitar, (int)CategoryType.EditorToolGroupNote);
+            interactionMatrix.SetInteractable((int)CategoryType.EditorToolGroupNoteDrums, (int)CategoryType.EditorToolGroupNote);
+
             // Set editor interactions
-            foreach(var value in EnumX<CategoryType>.Values)
+            foreach (var value in EnumX<CategoryType>.Values)
             {
                 // Every category interacts with itself
                 interactionMatrix.SetInteractable((int)value, (int)value);
@@ -225,10 +246,16 @@ public static class MSChartEditorInput
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     #region Input Queries
+    // Note, bool allowedDuringRebind should actually be replaced with flags of some kind. Just need quick fix right now.
 
-    public static bool GetInputDown(MSChartEditorInputActions key)
+    static bool BlockedByRebind(bool allowedDuringRebind)
     {
-        if (ChartEditor.hasFocus && !Services.IsTyping)
+        return !allowedDuringRebind && Services.IsBindingsMenuActive;
+    }
+
+    public static bool GetInputDown(MSChartEditorInputActions key, bool allowedDuringRebind = false)
+    {
+        if (ChartEditor.hasFocus && !Services.IsTyping && !BlockedByRebind(allowedDuringRebind))
         {
             return primaryInputs.GetActionConfig(key).GetInputDown(InputManager.Instance.devices);
         }
@@ -236,9 +263,9 @@ public static class MSChartEditorInput
         return false;
     }
 
-    public static bool GetInputUp(MSChartEditorInputActions key)
+    public static bool GetInputUp(MSChartEditorInputActions key, bool allowedDuringRebind = false)
     {
-        if (ChartEditor.hasFocus && !Services.IsTyping)
+        if (ChartEditor.hasFocus && !Services.IsTyping && !BlockedByRebind(allowedDuringRebind))
         {
             return primaryInputs.GetActionConfig(key).GetInputUp(InputManager.Instance.devices);
         }
@@ -246,9 +273,9 @@ public static class MSChartEditorInput
         return false;
     }
 
-    public static bool GetInput(MSChartEditorInputActions key)
+    public static bool GetInput(MSChartEditorInputActions key, bool allowedDuringRebind = false)
     {
-        if (ChartEditor.hasFocus && !Services.IsTyping)
+        if (ChartEditor.hasFocus && !Services.IsTyping && !BlockedByRebind(allowedDuringRebind))
         {
             return primaryInputs.GetActionConfig(key).GetInput(InputManager.Instance.devices);
         }
@@ -256,15 +283,15 @@ public static class MSChartEditorInput
         return false;
     }
 
-    public static float GetAxis(MSChartEditorInputActions key)
+    public static float GetAxis(MSChartEditorInputActions key, bool allowedDuringRebind = false)
     {
-        float? value = GetAxisMaybe(key);
+        float? value = GetAxisMaybe(key, allowedDuringRebind);
         return value.HasValue ? value.Value : 0;
     }
 
-    public static float? GetAxisMaybe(MSChartEditorInputActions key)
+    public static float? GetAxisMaybe(MSChartEditorInputActions key, bool allowedDuringRebind = false)
     {
-        if (ChartEditor.hasFocus && !Services.IsTyping)
+        if (ChartEditor.hasFocus && !Services.IsTyping && !BlockedByRebind(allowedDuringRebind))
         {
             return primaryInputs.GetActionConfig(key).GetAxisMaybe(InputManager.Instance.devices);
         }
@@ -272,33 +299,33 @@ public static class MSChartEditorInput
         return null;
     }
 
-    public static bool GetGroupInputDown(MSChartEditorInputActions[] keys)
+    public static bool GetGroupInputDown(MSChartEditorInputActions[] keys, bool allowedDuringRebind = false)
     {
         foreach (MSChartEditorInputActions key in keys)
         {
-            if (GetInputDown(key))
+            if (GetInputDown(key, allowedDuringRebind))
                 return true;
         }
 
         return false;
     }
 
-    public static bool GetGroupInputUp(MSChartEditorInputActions[] keys)
+    public static bool GetGroupInputUp(MSChartEditorInputActions[] keys, bool allowedDuringRebind = false)
     {
         foreach (MSChartEditorInputActions key in keys)
         {
-            if (GetInputUp(key))
+            if (GetInputUp(key, allowedDuringRebind))
                 return true;
         }
 
         return false;
     }
 
-    public static bool GetGroupInput(MSChartEditorInputActions[] keys)
+    public static bool GetGroupInput(MSChartEditorInputActions[] keys, bool allowedDuringRebind = false)
     {
         foreach (MSChartEditorInputActions key in keys)
         {
-            if (GetInput(key))
+            if (GetInput(key, allowedDuringRebind))
                 return true;
         }
 

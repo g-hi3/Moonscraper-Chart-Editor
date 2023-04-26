@@ -52,9 +52,8 @@ public class SongPropertiesPanelController : TabMenu
     Dictionary<Song.AudioInstrument, Text> m_audioStreamTextLookup;
     readonly string[] INI_SECTION_HEADER = { "Song", "song" };
 
-    protected override void Start()
+    protected void Start()
     {
-        base.Start();
         offset.onValidateInput = LocalesManager.ValidateDecimalInput;
 
         songName.onValidateInput = ValidateStringMetadataInput;
@@ -353,9 +352,15 @@ public class SongPropertiesPanelController : TabMenu
         setAudioTextLabels();
     }
 
+    static readonly HashSet<char> s_metadataBannedChars = new HashSet<char>()
+    {
+        '"',
+        '\n'
+    };
+
     public static char ValidateStringMetadataInput(string text, int charIndex, char addedChar)
     {
-        if (addedChar == '"')
+        if (s_metadataBannedChars.Contains(addedChar))
         {
             return '\0';
         }

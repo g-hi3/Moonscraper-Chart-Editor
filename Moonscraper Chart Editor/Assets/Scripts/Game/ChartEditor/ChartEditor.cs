@@ -72,7 +72,7 @@ public class ChartEditor : UnitySingleton<ChartEditor>
     public static bool hasFocus { get { return Application.isFocused; } }
 
     public SelectedObjectsManager selectedObjectsManager;
-    public CommandStack commandStack { get; private set; }
+    public CommandStack commandStack => m_songCommandStack;
     CommandStack m_songCommandStack;
 
     /// <summary>
@@ -152,7 +152,8 @@ public class ChartEditor : UnitySingleton<ChartEditor>
         windowHandleManager = new WindowHandleManager(string.Format("{0} v{1} {2}", Application.productName, Application.version, Globals.applicationBranchName), GetComponent<Settings>().productName);
         Application.logMessageReceived += HandleException;
 
-        Debug.Log(string.Format("Initialising {0} v{1}", Application.productName, Application.version));
+        string branchName = string.IsNullOrEmpty(Globals.applicationBranchName) ? "main" : Globals.applicationBranchName;
+        Debug.Log(string.Format("Initialising {0} v{1} Branch {2}", Application.productName, Application.version, branchName));
 
 #if !UNITY_EDITOR
         Application.wantsToQuit += QuittingEditCheck;
@@ -916,7 +917,6 @@ public class ChartEditor : UnitySingleton<ChartEditor>
         {
             // Needs initialisation
             m_songCommandStack = new CommandStack();
-            SetActiveCommandStack(m_songCommandStack);
         }
         else
         {
@@ -1416,17 +1416,6 @@ public class ChartEditor : UnitySingleton<ChartEditor>
     {
         Copy();
         Delete();
-    }
-
-    // Gives undo-redo functionality to sub-states
-    public void SetActiveCommandStack(CommandStack commandStack)
-    {
-        this.commandStack = commandStack;
-    }
-
-    public void SetDefaultCommandStack()
-    {
-        this.commandStack = m_songCommandStack;
     }
 
 #endregion

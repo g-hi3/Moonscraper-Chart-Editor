@@ -216,7 +216,7 @@
                 "rebindable": true,
                 "hiddenInLists": false,
                 "anyDirectionAxis": false,
-                "category": 7,
+                "category": 9,
                 "allowSameFrameMultiInput": false
             }
         },
@@ -227,7 +227,7 @@
                 "rebindable": true,
                 "hiddenInLists": false,
                 "anyDirectionAxis": false,
-                "category": 7,
+                "category": 9,
                 "allowSameFrameMultiInput": false
             }
         },
@@ -238,7 +238,7 @@
                 "rebindable": true,
                 "hiddenInLists": false,
                 "anyDirectionAxis": false,
-                "category": 7,
+                "category": 9,
                 "allowSameFrameMultiInput": false
             }
         },
@@ -249,7 +249,18 @@
                 "rebindable": true,
                 "hiddenInLists": false,
                 "anyDirectionAxis": false,
-                "category": 7,
+                "category": 9,
+                "allowSameFrameMultiInput": false
+            }
+        },
+        {
+            "mSChartEditorInputAction": "NoteSetTom",
+            "properties": {
+                "displayName": "Set Note As Tom",
+                "rebindable": true,
+                "hiddenInLists": false,
+                "anyDirectionAxis": false,
+                "category": 10,
                 "allowSameFrameMultiInput": false
             }
         },
@@ -260,7 +271,62 @@
                 "rebindable": true,
                 "hiddenInLists": false,
                 "anyDirectionAxis": false,
-                "category": 1,
+                "category": 10,
+                "allowSameFrameMultiInput": false
+            }
+        },
+        {
+            "mSChartEditorInputAction": "NoteSetDynamicsNone",
+            "properties": {
+                "displayName": "Set Note Dynamics None",
+                "rebindable": true,
+                "hiddenInLists": false,
+                "anyDirectionAxis": false,
+                "category": 10,
+                "allowSameFrameMultiInput": false
+            }
+        },
+        {
+            "mSChartEditorInputAction": "NoteSetAccent",
+            "properties": {
+                "displayName": "Set Note As Accent",
+                "rebindable": true,
+                "hiddenInLists": false,
+                "anyDirectionAxis": false,
+                "category": 10,
+                "allowSameFrameMultiInput": false
+            }
+        },
+        {
+            "mSChartEditorInputAction": "NoteSetGhost",
+            "properties": {
+                "displayName": "Set Note As Ghost",
+                "rebindable": true,
+                "hiddenInLists": false,
+                "anyDirectionAxis": false,
+                "category": 10,
+                "allowSameFrameMultiInput": false
+            }
+        },
+        {
+            "mSChartEditorInputAction": "NoteSetDoubleKick",
+            "properties": {
+                "displayName": "Set Note As Double Kick",
+                "rebindable": true,
+                "hiddenInLists": false,
+                "anyDirectionAxis": false,
+                "category": 10,
+                "allowSameFrameMultiInput": false
+            }
+        },
+        {
+            "mSChartEditorInputAction": "NoteSetAltDoubleKick",
+            "properties": {
+                "displayName": "Set Note As Alt Double Kick",
+                "rebindable": true,
+                "hiddenInLists": false,
+                "anyDirectionAxis": false,
+                "category": 10,
                 "allowSameFrameMultiInput": false
             }
         },
@@ -485,6 +551,28 @@
             }
         },
         {
+            "mSChartEditorInputAction": "ToggleNoteAccent",
+            "properties": {
+                "displayName": "Toggle Note Accent",
+                "rebindable": true,
+                "hiddenInLists": false,
+                "anyDirectionAxis": false,
+                "category": 3,
+                "allowSameFrameMultiInput": false
+            }
+        },
+        {
+            "mSChartEditorInputAction": "ToggleNoteGhost",
+            "properties": {
+                "displayName": "Toggle Note Ghost",
+                "rebindable": true,
+                "hiddenInLists": false,
+                "anyDirectionAxis": false,
+                "category": 3,
+                "allowSameFrameMultiInput": false
+            }
+        },
+        {
             "mSChartEditorInputAction": "ToggleStarpowerDrumsFillActivation",
             "properties": {
                 "displayName": "Toggle Starpower Drums Fill Activation",
@@ -503,6 +591,28 @@
                 "hiddenInLists": false,
                 "anyDirectionAxis": false,
                 "category": 1,
+                "allowSameFrameMultiInput": false
+            }
+        },
+        {
+            "mSChartEditorInputAction": "DrumRollSetSingle",
+            "properties": {
+                "displayName": "Set Drum Roll Single",
+                "rebindable": true,
+                "hiddenInLists": false,
+                "anyDirectionAxis": false,
+                "category": 11,
+                "allowSameFrameMultiInput": false
+            }
+        },
+        {
+            "mSChartEditorInputAction": "DrumRollSetDouble",
+            "properties": {
+                "displayName": "Set Drum Roll Double",
+                "rebindable": true,
+                "hiddenInLists": false,
+                "anyDirectionAxis": false,
+                "category": 11,
                 "allowSameFrameMultiInput": false
             }
         },
@@ -609,6 +719,17 @@
             "mSChartEditorInputAction": "ToolSelectEvent",
             "properties": {
                 "displayName": "Select Event Tool",
+                "rebindable": true,
+                "hiddenInLists": false,
+                "anyDirectionAxis": false,
+                "category": 1,
+                "allowSameFrameMultiInput": false
+            }
+        },
+        {
+            "mSChartEditorInputAction": "ToolSelectDrumRoll",
+            "properties": {
+                "displayName": "Select Roll Lane Trigger Tool",
                 "rebindable": true,
                 "hiddenInLists": false,
                 "anyDirectionAxis": false,

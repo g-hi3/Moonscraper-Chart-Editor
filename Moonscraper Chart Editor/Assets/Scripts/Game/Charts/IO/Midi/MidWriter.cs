@@ -33,8 +33,8 @@ namespace MoonscraperChartEditor.Song.IO
 
         const byte SYSEX_START = 0xF0;
         const byte SYSEX_END = 0xF7;
-        const byte SYSEX_ON = 0x01;
-        const byte SYSEX_OFF = 0x00;
+
+        const int SOLO_END_CORRECTION_OFFSET = 1;
 
         static readonly byte[] END_OF_TRACK = new byte[] { 0, 0xFF, 0x2F, 0x00 };
 
@@ -47,72 +47,75 @@ namespace MoonscraperChartEditor.Song.IO
             public List<SortableBytes> out_sortableBytes;
         }
 
-        static readonly Dictionary<Song.Instrument, string> c_instrumentToTrackNameDict = new Dictionary<Song.Instrument, string>()
-    {
-        { Song.Instrument.Guitar,           MidIOHelper.GUITAR_TRACK },
-        { Song.Instrument.GuitarCoop,       MidIOHelper.GUITAR_COOP_TRACK },
-        { Song.Instrument.Bass,             MidIOHelper.BASS_TRACK },
-        { Song.Instrument.Rhythm,           MidIOHelper.RHYTHM_TRACK },
-        { Song.Instrument.Keys,             MidIOHelper.KEYS_TRACK },
-        { Song.Instrument.Drums,            MidIOHelper.DRUMS_TRACK },
-        { Song.Instrument.GHLiveGuitar,     MidIOHelper.GHL_GUITAR_TRACK },
-        { Song.Instrument.GHLiveBass,       MidIOHelper.GHL_BASS_TRACK },
-    };
+        static readonly IReadOnlyDictionary<Song.Instrument, string> c_instrumentToTrackNameDict = new Dictionary<Song.Instrument, string>()
+        {
+            { Song.Instrument.Guitar,           MidIOHelper.GUITAR_TRACK },
+            { Song.Instrument.GuitarCoop,       MidIOHelper.GUITAR_COOP_TRACK },
+            { Song.Instrument.Bass,             MidIOHelper.BASS_TRACK },
+            { Song.Instrument.Rhythm,           MidIOHelper.RHYTHM_TRACK },
+            { Song.Instrument.Keys,             MidIOHelper.KEYS_TRACK },
+            { Song.Instrument.Drums,            MidIOHelper.DRUMS_TRACK },
+            { Song.Instrument.GHLiveGuitar,     MidIOHelper.GHL_GUITAR_TRACK },
+            { Song.Instrument.GHLiveBass,       MidIOHelper.GHL_BASS_TRACK },
+            { Song.Instrument.GHLiveRhythm,     MidIOHelper.GHL_RHYTHM_TRACK },
+            { Song.Instrument.GHLiveCoop,       MidIOHelper.GHL_GUITAR_COOP_TRACK },
 
-        static readonly Dictionary<Song.Difficulty, int> c_difficultyToMidiNoteWriteDict = new Dictionary<Song.Difficulty, int>()
-    {
-        { Song.Difficulty.Easy,             60 },
-        { Song.Difficulty.Medium,           72 },
-        { Song.Difficulty.Hard,             84 },
-        { Song.Difficulty.Expert,           96 },
-    };
+        };
 
-        static readonly Dictionary<int, int> c_guitarNoteMidiWriteOffsets = new Dictionary<int, int>()
-    {
-        { (int)Note.GuitarFret.Open,     0},     // Gets replaced by an sysex event
-        { (int)Note.GuitarFret.Green,    0},
-        { (int)Note.GuitarFret.Red,      1},
-        { (int)Note.GuitarFret.Yellow,   2},
-        { (int)Note.GuitarFret.Blue,     3},
-        { (int)Note.GuitarFret.Orange,   4},
-    };
+        static readonly IReadOnlyDictionary<Song.Difficulty, int> c_difficultyToMidiNoteWriteDict = new Dictionary<Song.Difficulty, int>()
+        {
+            { Song.Difficulty.Easy,             60 },
+            { Song.Difficulty.Medium,           72 },
+            { Song.Difficulty.Hard,             84 },
+            { Song.Difficulty.Expert,           96 },
+        };
 
-        static readonly Dictionary<int, int> c_drumNoteMidiWriteOffsets = new Dictionary<int, int>()
-    {
-        { (int)Note.DrumPad.Kick,     0},
-        { (int)Note.DrumPad.Red,      1},
-        { (int)Note.DrumPad.Yellow,   2},
-        { (int)Note.DrumPad.Blue,     3},
-        { (int)Note.DrumPad.Orange,   4},
-        { (int)Note.DrumPad.Green,    5},
-    };
+        static readonly IReadOnlyDictionary<int, int> c_guitarNoteMidiWriteOffsets = new Dictionary<int, int>()
+        {
+            { (int)Note.GuitarFret.Open,     0},     // Gets replaced by an sysex event
+            { (int)Note.GuitarFret.Green,    0},
+            { (int)Note.GuitarFret.Red,      1},
+            { (int)Note.GuitarFret.Yellow,   2},
+            { (int)Note.GuitarFret.Blue,     3},
+            { (int)Note.GuitarFret.Orange,   4},
+        };
 
-        static readonly Dictionary<int, int> c_ghlNoteMidiWriteOffsets = new Dictionary<int, int>()
-    {
-        { (int)Note.GHLiveGuitarFret.Open,   -2},
-        { (int)Note.GHLiveGuitarFret.White1, -1},
-        { (int)Note.GHLiveGuitarFret.White2, 0},
-        { (int)Note.GHLiveGuitarFret.White3, 1},
-        { (int)Note.GHLiveGuitarFret.Black1, 2},
-        { (int)Note.GHLiveGuitarFret.Black2, 3},
-        { (int)Note.GHLiveGuitarFret.Black3, 4},
-    };
+        static readonly IReadOnlyDictionary<int, int> c_drumNoteMidiWriteOffsets = new Dictionary<int, int>()
+        {
+            { (int)Note.DrumPad.Kick,     0},
+            { (int)Note.DrumPad.Red,      1},
+            { (int)Note.DrumPad.Yellow,   2},
+            { (int)Note.DrumPad.Blue,     3},
+            { (int)Note.DrumPad.Orange,   4},
+            { (int)Note.DrumPad.Green,    5},
+        };
 
-        static readonly Dictionary<Chart.GameMode, Dictionary<int, int>> c_gameModeNoteWriteOffsetDictLookup = new Dictionary<Chart.GameMode, Dictionary<int, int>>()
-    {
-        { Chart.GameMode.Guitar,    c_guitarNoteMidiWriteOffsets },
-        { Chart.GameMode.Drums,     c_drumNoteMidiWriteOffsets },
-        { Chart.GameMode.GHLGuitar, c_ghlNoteMidiWriteOffsets },
-    };
+        static readonly IReadOnlyDictionary<int, int> c_ghlNoteMidiWriteOffsets = new Dictionary<int, int>()
+        {
+            { (int)Note.GHLiveGuitarFret.Open,   -2},
+            { (int)Note.GHLiveGuitarFret.White1, -1},
+            { (int)Note.GHLiveGuitarFret.White2, 0},
+            { (int)Note.GHLiveGuitarFret.White3, 1},
+            { (int)Note.GHLiveGuitarFret.Black1, 2},
+            { (int)Note.GHLiveGuitarFret.Black2, 3},
+            { (int)Note.GHLiveGuitarFret.Black3, 4},
+        };
 
-        static readonly Dictionary<Note.NoteType, int> c_forcingMidiWriteOffsets = new Dictionary<Note.NoteType, int>()
-    {
-        { Note.NoteType.Hopo, 5 },
-        { Note.NoteType.Strum, 6 },
-    };
+        static readonly IReadOnlyDictionary<Chart.GameMode, IReadOnlyDictionary<int, int>> c_gameModeNoteWriteOffsetDictLookup = new Dictionary<Chart.GameMode, IReadOnlyDictionary<int, int>>()
+        {
+            { Chart.GameMode.Guitar,    c_guitarNoteMidiWriteOffsets },
+            { Chart.GameMode.Drums,     c_drumNoteMidiWriteOffsets },
+            { Chart.GameMode.GHLGuitar, c_ghlNoteMidiWriteOffsets },
+        };
+
+        static readonly IReadOnlyDictionary<Note.NoteType, int> c_forcingMidiWriteOffsets = new Dictionary<Note.NoteType, int>()
+        {
+            { Note.NoteType.Hopo, 5 },
+            { Note.NoteType.Strum, 6 },
+        };
 
         delegate void ProcessVocalEventBytesFn(in VocalProcessingParams processParams);
-        static readonly Dictionary<string, ProcessVocalEventBytesFn> vocalPrefixProcessList = new Dictionary<string, ProcessVocalEventBytesFn>()
+        static readonly IReadOnlyDictionary<string, ProcessVocalEventBytesFn> vocalPrefixProcessList = new Dictionary<string, ProcessVocalEventBytesFn>()
         {
             { MidIOHelper.LYRIC_EVENT_PREFIX, (in VocalProcessingParams processParams) => {
                 const string prefix = MidIOHelper.LYRIC_EVENT_PREFIX;
@@ -126,7 +129,7 @@ namespace MoonscraperChartEditor.Song.IO
                 InsertionSort(processParams.out_sortableBytes, bytes);
             }},
 
-            { MidIOHelper.PhraseStartText, (in VocalProcessingParams processParams) => {
+            { MidIOHelper.LYRICS_PHRASE_START_TEXT, (in VocalProcessingParams processParams) => {
 
                 Event phraseStartEvent = processParams.eventList[processParams.eventListIndex];
                 uint phraseEndEventTick = phraseStartEvent.tick;    // Find next phase end or the next phase start, whichever is first. 1 tick away as a backup. 
@@ -134,12 +137,12 @@ namespace MoonscraperChartEditor.Song.IO
                 for (int i = processParams.eventListIndex + 1; i < processParams.eventList.Count; ++i)
                 {
                     Event nextEvent = processParams.eventList[i];
-                    if (nextEvent.title.StartsWith(MidIOHelper.PhraseEndText))
+                    if (nextEvent.title.StartsWith(MidIOHelper.LYRICS_PHRASE_END_TEXT))
                     {
                         phraseEndEventTick = nextEvent.tick;
                         break;
                     }
-                    else if(nextEvent.title.StartsWith(MidIOHelper.PhraseStartText))
+                    else if(nextEvent.title.StartsWith(MidIOHelper.LYRICS_PHRASE_START_TEXT))
                     {
                         phraseEndEventTick = nextEvent.tick - 1;
                         break;
@@ -155,13 +158,13 @@ namespace MoonscraperChartEditor.Song.IO
                 Note phraseNote = new Note(phraseStartEvent.tick, 0, phraseEndEventTick - phraseStartEvent.tick);
                 SortableBytes onEvent = null;
                 SortableBytes offEvent = null;
-                GetNoteNumberBytes(MidIOHelper.PhraseMarker, phraseNote, VELOCITY, out onEvent, out offEvent);
+                GetNoteNumberBytes(MidIOHelper.LYRICS_PHRASE_1, phraseNote, VELOCITY, out onEvent, out offEvent);
 
                 InsertionSort(processParams.out_sortableBytes, onEvent);
                 InsertionSort(processParams.out_sortableBytes, offEvent);
             }},
 
-            { MidIOHelper.PhraseEndText, (in VocalProcessingParams processParams) => {
+            { MidIOHelper.LYRICS_PHRASE_END_TEXT, (in VocalProcessingParams processParams) => {
                 // Do nothing, phrase start handles this. Still need to mark it here for it to be excluded from regular events track
             }},
         };
@@ -323,19 +326,19 @@ namespace MoonscraperChartEditor.Song.IO
             VocalProcessingParams vocalProcesingParams = new VocalProcessingParams() { song = song, out_sortableBytes = vocalsEvents };
 
             var rbFormat = exportOptions.midiOptions.rbFormat;
-            string section_id = MidIOHelper.Rb2SectionPrefix;
+            string section_id = MidIOHelper.SECTION_PREFIX_RB2;
 
             switch (rbFormat)
             {
                 case ExportOptions.MidiOptions.RBFormat.RB3:
                     {
-                        section_id = MidIOHelper.Rb3SectionPrefix;
+                        section_id = MidIOHelper.SECTION_PREFIX_RB3;
                         break;
                     }
                 case ExportOptions.MidiOptions.RBFormat.RB2:
                 default:
                     {
-                        section_id = MidIOHelper.Rb2SectionPrefix;
+                        section_id = MidIOHelper.SECTION_PREFIX_RB2;
                         break;
                     }
             }
@@ -509,6 +512,7 @@ namespace MoonscraperChartEditor.Song.IO
             List<SortableBytes> eventList = new List<SortableBytes>();
 
             ChartEvent soloOnEvent = null;
+            bool dynamicsFound = false;
             foreach (ChartObject chartObject in chart.chartObjects)
             {
                 Note note = chartObject as Note;
@@ -526,10 +530,12 @@ namespace MoonscraperChartEditor.Song.IO
                     {
                         if (note.flags.HasFlag(Note.Flags.ProDrums_Accent))
                         {
+                            dynamicsFound = true;
                             velocity = MidIOHelper.VELOCITY_ACCENT;
                         }
                         else if (note.flags.HasFlag(Note.Flags.ProDrums_Ghost))
                         {
+                            dynamicsFound = true;
                             velocity = MidIOHelper.VELOCITY_GHOST;
                         }
                     }
@@ -542,7 +548,7 @@ namespace MoonscraperChartEditor.Song.IO
                         Note.Flags noteFlags = note.flags & ~bannedFlags;   // Last ditched error correction
 
                         // Forced notes               
-                        if ((noteFlags & Note.Flags.Forced) != 0 && note.type != Note.NoteType.Tap && (note.previous == null || (note.previous.tick != note.tick)))     // Don't overlap on chords
+                        if (noteFlags.HasFlag(Note.Flags.Forced) && note.type != Note.NoteType.Tap && (note.previous == null || (note.previous.tick != note.tick)))     // Don't overlap on chords
                         {
                             // Add a note
                             int difficultyNumber;
@@ -565,7 +571,7 @@ namespace MoonscraperChartEditor.Song.IO
 
                         if (writeGlobalTrackEvents)
                         {
-                            if (instrument == Song.Instrument.Drums && ((noteFlags & Note.Flags.ProDrums_Cymbal) == 0))     // We want to write our flags if the cymbal is toggled OFF, as these notes are cymbals by default
+                            if (instrument == Song.Instrument.Drums && !noteFlags.HasFlag(Note.Flags.ProDrums_Cymbal))     // We want to write our flags if the cymbal is toggled OFF, as these notes are cymbals by default
                             {
                                 int tomToggleNoteNumber;
                                 if (MidIOHelper.PAD_TO_CYMBAL_LOOKUP.TryGetValue(note.drumPad, out tomToggleNoteNumber))
@@ -580,20 +586,17 @@ namespace MoonscraperChartEditor.Song.IO
 
                             int openNote = gameMode == Chart.GameMode.GHLGuitar ? (int)Note.GHLiveGuitarFret.Open : (int)Note.GuitarFret.Open;
                             // Add tap sysex events
-                            bool isStartOfTapRange = note.rawNote != openNote && (noteFlags & Note.Flags.Tap) != 0 && (note.previous == null || (note.previous.flags & Note.Flags.Tap) == 0);
+                            bool isStartOfTapRange = note.rawNote != openNote && noteFlags.HasFlag(Note.Flags.Tap) && (note.previous == null || (note.previous.flags & Note.Flags.Tap) == 0);
                             if (isStartOfTapRange)  // This note is a tap while the previous one isn't as we're creating a range
                             {
                                 // Find the next non-tap note
                                 Note nextNonTap = note;
-                                while (nextNonTap.next != null && nextNonTap.rawNote != openNote && (nextNonTap.next.flags & Note.Flags.Tap) != 0)
+                                while (nextNonTap.next != null && nextNonTap.rawNote != openNote && nextNonTap.next.flags.HasFlag(Note.Flags.Tap))
                                     nextNonTap = nextNonTap.next;
 
-                                // Tap event = 08-50-53-00-00-FF-04-01, end with 01 for On, 00 for Off
-                                byte[] tapOnEventBytes = new byte[] { SYSEX_START, 0x08, 0x50, 0x53, 0x00, 0x00, 0xFF, 0x04, SYSEX_ON, SYSEX_END };
-                                byte[] tapOffEventBytes = new byte[] { SYSEX_START, 0x08, 0x50, 0x53, 0x00, 0x00, 0xFF, 0x04, SYSEX_OFF, SYSEX_END };
-
-                                SortableBytes tapOnEvent = new SortableBytes(note.tick, tapOnEventBytes);
-                                SortableBytes tapOffEvent = new SortableBytes(nextNonTap.tick + 1, tapOffEventBytes);
+                                SortableBytes tapOnEvent;
+                                SortableBytes tapOffEvent;
+                                GetPhaseShiftSysExEventBytes(note.tick, nextNonTap.tick + 1, MidIOHelper.SYSEX_CODE_GUITAR_TAP, out tapOnEvent, out tapOffEvent);
 
                                 InsertionSort(eventList, tapOnEvent);
                                 InsertionSort(eventList, tapOffEvent);
@@ -608,31 +611,9 @@ namespace MoonscraperChartEditor.Song.IO
                         while (nextNonOpen.next != null && nextNonOpen.next.guitarFret == Note.GuitarFret.Open)
                             nextNonOpen = nextNonOpen.next;
 
-                        byte diff;
-
-                        switch (difficulty)
-                        {
-                            case (Song.Difficulty.Easy):
-                                diff = 0;
-                                break;
-                            case (Song.Difficulty.Medium):
-                                diff = 1;
-                                break;
-                            case (Song.Difficulty.Hard):
-                                diff = 2;
-                                break;
-                            case (Song.Difficulty.Expert):
-                                diff = 3;
-                                break;
-                            default:
-                                continue;
-                        }
-
-                        byte[] openOnEventBytes = new byte[] { SYSEX_START, 0x08, 0x50, 0x53, 0x00, 0x00, diff, 0x01, SYSEX_ON, SYSEX_END };
-                        byte[] openOffEventBytes = new byte[] { SYSEX_START, 0x08, 0x50, 0x53, 0x00, 0x00, diff, 0x01, SYSEX_OFF, SYSEX_END };
-
-                        SortableBytes openOnEvent = new SortableBytes(note.tick, openOnEventBytes);
-                        SortableBytes openOffEvent = new SortableBytes(nextNonOpen.tick + 1, openOffEventBytes);
+                        SortableBytes openOnEvent;
+                        SortableBytes openOffEvent;
+                        GetPhaseShiftSysExEventBytes(note.tick, nextNonOpen.tick + 1, difficulty, MidIOHelper.SYSEX_CODE_GUITAR_OPEN, out openOnEvent, out openOffEvent);
 
                         InsertionSort(eventList, openOnEvent);
                         InsertionSort(eventList, openOffEvent);
@@ -643,17 +624,45 @@ namespace MoonscraperChartEditor.Song.IO
                 {
                     Starpower sp = chartObject as Starpower;
                     if (sp != null)     // Starpower cannot be split up between charts in a midi file
-                        GetStarpowerBytes(sp, out onEvent, out offEvent);
+                    {
+                        // Starpower notes marked as a drum roll are written as 5 notes instead of 1
+                        // http://docs.c3universe.com/rbndocs/index.php?title=Drum_Authoring#Drum_Fills
+                        var events = GetStarpowerBytes(sp);
+                        if (events != null)
+                        {
+                            for (int i = 0; i < events.Length; ++i)
+                            {
+                                (var spOnEvent, var spOffEvent) = events[i];
+                                Debug.Assert(spOnEvent != null && spOffEvent != null, "Invalid starpower event pair in MIDI export!");
+                                if (spOnEvent == null || spOffEvent == null)
+                                    continue;
+
+                                InsertionSort(eventList, spOnEvent);
+
+                                if (spOffEvent.tick == spOnEvent.tick)
+                                    ++spOffEvent.tick;
+
+                                InsertionSort(eventList, spOffEvent);
+                            }
+                        }
+                    }
+
+                    DrumRoll roll = chartObject as DrumRoll;
+                    if (roll != null)
+                        GetDrumRollBytes(roll, out onEvent, out offEvent);
 
                     ChartEvent chartEvent = chartObject as ChartEvent;
                     if (chartEvent != null)     // Text events cannot be split up in the file
                     {
-                        if (soloOnEvent != null && chartEvent.eventName == MidIOHelper.SoloEndEventText)
+                        if (soloOnEvent != null && chartEvent.eventName == MidIOHelper.SOLO_END_EVENT_TEXT)
                         {
-                            GetSoloBytes(soloOnEvent, chartEvent.tick, out onEvent, out offEvent);
+                            // Note-off tick for a solo marker in midi does not count as part of the solo, however does in .chart
+                            // Manually offset by 1 tick to make sure all notes in the solo are included
+                            uint endTick = Math.Max(soloOnEvent.tick, chartEvent.tick + SOLO_END_CORRECTION_OFFSET);
+                            GetSoloBytes(soloOnEvent, endTick, out onEvent, out offEvent);
                             soloOnEvent = null;
                         }
-                        else if (chartEvent.eventName == MidIOHelper.SoloEventText)
+                        else if (chartEvent.eventName == MidIOHelper.SOLO_EVENT_TEXT)
                         {
                             soloOnEvent = chartEvent;
                         }
@@ -694,6 +703,14 @@ namespace MoonscraperChartEditor.Song.IO
                 }
             }
 
+            if (dynamicsFound)
+            {
+                byte[] textEvent = MetaTextEvent(MetaTextEventType.Text, MidIOHelper.CHART_DYNAMICS_TEXT_BRACKET);
+                SortableBytes dynamicsEvent = new SortableBytes(1, textEvent); // Place at the start of the track, just after the track name event
+
+                InsertionSort(eventList, dynamicsEvent);
+            }
+
             return eventList.ToArray();
         }
 
@@ -712,7 +729,30 @@ namespace MoonscraperChartEditor.Song.IO
 
                 Starpower sp = chartObject as Starpower;
                 if (sp != null)     // Starpower cannot be split up between charts in a midi file
-                    GetStarpowerBytes(sp, out onEvent, out offEvent);
+                {
+                    var events = GetStarpowerBytes(sp);
+                    if (events != null)
+                    {
+                        for (int i = 0; i < events.Length; ++i)
+                        {
+                            (var spOnEvent, var spOffEvent) = events[i];
+                            Debug.Assert(spOnEvent != null && spOffEvent != null, "Invalid starpower event pair in MIDI export!");
+                            if (spOnEvent == null || spOffEvent == null)
+                                continue;
+
+                            InsertionSort(eventList, spOnEvent);
+
+                            if (spOffEvent.tick == spOnEvent.tick)
+                                ++spOffEvent.tick;
+
+                            InsertionSort(eventList, spOffEvent);
+                        }
+                    }
+                }
+
+                DrumRoll roll = chartObject as DrumRoll;
+                if (roll != null)
+                    GetDrumRollBytes(roll, out onEvent, out offEvent);
 
                 ChartEvent chartEvent = chartObject as ChartEvent;
                 if (chartEvent != null)     // Text events cannot be split up in the file
@@ -950,13 +990,47 @@ namespace MoonscraperChartEditor.Song.IO
         /* CHART EVENT BYTE DETERMINING 
         ***********************************************************************************************/
 
-        static void GetStarpowerBytes(Starpower sp, out SortableBytes onEvent, out SortableBytes offEvent)
+        static (SortableBytes, SortableBytes)[] GetStarpowerBytes(Starpower sp)
         {
+            uint startTick = sp.tick;
+            uint endTick = sp.tick + sp.length;
             bool isDrumFill = sp.flags.HasFlag(Starpower.Flags.ProDrums_Activation);
-            byte spNote = isDrumFill ? MidIOHelper.STARPOWER_DRUM_FILL_0 : MidIOHelper.STARPOWER_NOTE;
+            // Drum fills are 5 notes instead of one
+            // http://docs.c3universe.com/rbndocs/index.php?title=Drum_Authoring#Drum_Fills
+            if (isDrumFill)
+            {
+                return new (SortableBytes, SortableBytes)[] {
+                    (new SortableBytes(startTick, new byte[] { ON_EVENT, MidIOHelper.STARPOWER_DRUM_FILL_0, VELOCITY }),
+                    new SortableBytes(endTick, new byte[] { OFF_EVENT, MidIOHelper.STARPOWER_DRUM_FILL_0, VELOCITY })),
 
-            onEvent = new SortableBytes(sp.tick, new byte[] { ON_EVENT, spNote, VELOCITY });
-            offEvent = new SortableBytes(sp.tick + sp.length, new byte[] { OFF_EVENT, spNote, VELOCITY });
+                    (new SortableBytes(startTick, new byte[] { ON_EVENT, MidIOHelper.STARPOWER_DRUM_FILL_1, VELOCITY }),
+                    new SortableBytes(endTick, new byte[] { OFF_EVENT, MidIOHelper.STARPOWER_DRUM_FILL_1, VELOCITY })),
+
+                    (new SortableBytes(startTick, new byte[] { ON_EVENT, MidIOHelper.STARPOWER_DRUM_FILL_2, VELOCITY }),
+                    new SortableBytes(endTick, new byte[] { OFF_EVENT, MidIOHelper.STARPOWER_DRUM_FILL_2, VELOCITY })),
+
+                    (new SortableBytes(startTick, new byte[] { ON_EVENT, MidIOHelper.STARPOWER_DRUM_FILL_3, VELOCITY }),
+                    new SortableBytes(endTick, new byte[] { OFF_EVENT, MidIOHelper.STARPOWER_DRUM_FILL_3, VELOCITY })),
+
+                    (new SortableBytes(startTick, new byte[] { ON_EVENT, MidIOHelper.STARPOWER_DRUM_FILL_4, VELOCITY }),
+                    new SortableBytes(endTick, new byte[] { OFF_EVENT, MidIOHelper.STARPOWER_DRUM_FILL_4, VELOCITY }))
+                };
+            }
+            else
+            {
+                return new (SortableBytes, SortableBytes)[] {
+                    (new SortableBytes(startTick, new byte[] { ON_EVENT, MidIOHelper.STARPOWER_NOTE, VELOCITY }),
+                    new SortableBytes(endTick, new byte[] { OFF_EVENT, MidIOHelper.STARPOWER_NOTE, VELOCITY }))
+                };
+            }
+        }
+
+        static void GetDrumRollBytes(DrumRoll roll, out SortableBytes onEvent, out SortableBytes offEvent)
+        {
+            byte note = roll.type == DrumRoll.Type.Standard ? MidIOHelper.DRUM_ROLL_STANDARD : MidIOHelper.DRUM_ROLL_SPECIAL;
+
+            onEvent = new SortableBytes(roll.tick, new byte[] { ON_EVENT, note, VELOCITY });
+            offEvent = new SortableBytes(roll.tick + roll.length, new byte[] { OFF_EVENT, note, VELOCITY });
         }
 
         static void GetSoloBytes(ChartEvent solo, uint soloEndTick, out SortableBytes onEvent, out SortableBytes offEvent)
@@ -969,6 +1043,49 @@ namespace MoonscraperChartEditor.Song.IO
         {
             byte[] textEvent = MetaTextEvent(MetaTextEventType.Text, chartEvent.eventName);
             return new SortableBytes(chartEvent.tick, textEvent);
+        }
+
+        static void GetPhaseShiftSysExEventBytes(uint startTick, uint endTick, byte code, out SortableBytes startEvent, out SortableBytes endEvent)
+        {
+            startEvent = GetPhaseShiftSysExEventBytes(startTick, code, start: true);
+            endEvent = GetPhaseShiftSysExEventBytes(endTick, code, start: false);
+        }
+
+        static void GetPhaseShiftSysExEventBytes(uint startTick, uint endTick, Song.Difficulty difficulty, byte code, out SortableBytes startEvent, out SortableBytes endEvent)
+        {
+            startEvent = GetPhaseShiftSysExEventBytes(startTick, difficulty, code, start: true);
+            endEvent = GetPhaseShiftSysExEventBytes(endTick, difficulty, code, start: false);
+        }
+
+        static SortableBytes GetPhaseShiftSysExEventBytes(uint tick, byte code, bool start)
+        {
+            return GetPhaseShiftSysExEventBytes(tick, MidIOHelper.SYSEX_DIFFICULTY_ALL, code, start);
+        }
+
+        static SortableBytes GetPhaseShiftSysExEventBytes(uint tick, Song.Difficulty difficulty, byte code, bool start)
+        {
+            return GetPhaseShiftSysExEventBytes(tick, MidIOHelper.MS_TO_SYSEX_DIFF_LOOKUP[difficulty], code, start);
+        }
+
+        static SortableBytes GetPhaseShiftSysExEventBytes(uint tick, byte difficulty, byte code, bool start)
+        {
+            if (!MidIOHelper.MS_TO_SYSEX_DIFF_LOOKUP.ContainsValue(difficulty) && difficulty != MidIOHelper.SYSEX_DIFFICULTY_ALL)
+                throw new ArgumentOutOfRangeException(nameof(difficulty), difficulty, "The given difficulty is not valid.");
+
+            byte[] eventBytes = new byte[] {
+                SYSEX_START,
+                MidIOHelper.SYSEX_LENGTH,
+                (byte)MidIOHelper.SYSEX_HEADER_1,
+                (byte)MidIOHelper.SYSEX_HEADER_2,
+                (byte)MidIOHelper.SYSEX_HEADER_3,
+                MidIOHelper.SYSEX_TYPE_PHRASE,
+                difficulty,
+                code,
+                start ? MidIOHelper.SYSEX_VALUE_PHRASE_START : MidIOHelper.SYSEX_VALUE_PHRASE_END,
+                SYSEX_END
+            };
+
+            return new SortableBytes(tick, eventBytes);
         }
 
         static void GetUnrecognisedChartNoteBytes(Note note, out SortableBytes onEvent, out SortableBytes offEvent)
@@ -984,7 +1101,7 @@ namespace MoonscraperChartEditor.Song.IO
 
         static int GetMidiNoteNumber(Note note, Chart.GameMode gameMode, Song.Difficulty difficulty)
         {
-            Dictionary<int, int> noteToMidiOffsetDict;
+            IReadOnlyDictionary<int, int> noteToMidiOffsetDict;
             int difficultyNumber;
             int offset;
 

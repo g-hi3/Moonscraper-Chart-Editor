@@ -11,6 +11,9 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using MoonscraperEngine;
+
+using NoteFlagPriority = MoonscraperChartEditor.Song.IO.ChartIOHelper.NoteFlagPriority;
 
 namespace MoonscraperChartEditor.Song.IO
 {
@@ -52,8 +55,8 @@ namespace MoonscraperChartEditor.Song.IO
 
         delegate void NoteEventProcessFn(in NoteProcessParams noteProcessParams);
 
-        // These dictionaries map the NoteNumber of each midi note event to a specific function of how to process them
-        static readonly Dictionary<int, NoteEventProcessFn> GuitarChartNoteNumberToProcessFnMap = new Dictionary<int, NoteEventProcessFn>()
+        // These dictionaries map the number of a note event to a specific function of how to process them
+        static readonly IReadOnlyDictionary<int, NoteEventProcessFn> GuitarChartNoteNumberToProcessFnMap = new Dictionary<int, NoteEventProcessFn>()
         {
             { 0, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)Note.GuitarFret.Green); }},
             { 1, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)Note.GuitarFret.Red); }},
@@ -62,11 +65,11 @@ namespace MoonscraperChartEditor.Song.IO
             { 4, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)Note.GuitarFret.Orange); }},
             { 7, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)Note.GuitarFret.Open); }},
 
-            { 5, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsChordFlag(noteProcessParams, Note.Flags.Forced); }},
-            { 6, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsChordFlag(noteProcessParams, Note.Flags.Tap); }},
+            { 5, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsChordFlag(noteProcessParams, NoteFlagPriority.Forced); }},
+            { 6, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsChordFlag(noteProcessParams, NoteFlagPriority.Tap); }},
         };
 
-        static readonly Dictionary<int, NoteEventProcessFn> DrumsChartNoteNumberToProcessFnMap = new Dictionary<int, NoteEventProcessFn>()
+        static readonly IReadOnlyDictionary<int, NoteEventProcessFn> DrumsChartNoteNumberToProcessFnMap = new Dictionary<int, NoteEventProcessFn>()
         {
             { 0, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)Note.DrumPad.Kick); }},
             { 1, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)Note.DrumPad.Red); }},
@@ -80,17 +83,51 @@ namespace MoonscraperChartEditor.Song.IO
             } },
 
             { ChartIOHelper.c_proDrumsOffset + 2, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)Note.DrumPad.Yellow, Note.Flags.ProDrums_Cymbal);
+                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)Note.DrumPad.Yellow, NoteFlagPriority.Cymbal);
             } },
             { ChartIOHelper.c_proDrumsOffset + 3, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)Note.DrumPad.Blue, Note.Flags.ProDrums_Cymbal);
+                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)Note.DrumPad.Blue, NoteFlagPriority.Cymbal);
             } },
             { ChartIOHelper.c_proDrumsOffset + 4, (in NoteProcessParams noteProcessParams) => {
-                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)Note.DrumPad.Orange, Note.Flags.ProDrums_Cymbal);
+                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)Note.DrumPad.Orange, NoteFlagPriority.Cymbal);
+            } },
+
+            // { ChartIOHelper.c_drumsAccentOffset + 0, ... }  // Reserved for kick accents, if they should ever be a thing
+            { ChartIOHelper.c_drumsAccentOffset + 1, (in NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)Note.DrumPad.Red, NoteFlagPriority.Accent);
+            } },
+            { ChartIOHelper.c_drumsAccentOffset + 2, (in NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)Note.DrumPad.Yellow, NoteFlagPriority.Accent);
+            } },
+            { ChartIOHelper.c_drumsAccentOffset + 3, (in NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)Note.DrumPad.Blue, NoteFlagPriority.Accent);
+            } },
+            { ChartIOHelper.c_drumsAccentOffset + 4, (in NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)Note.DrumPad.Orange, NoteFlagPriority.Accent);
+            } },
+            { ChartIOHelper.c_drumsAccentOffset + 5, (in NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)Note.DrumPad.Green, NoteFlagPriority.Accent);
+            } },
+
+            // { ChartIOHelper.c_drumsGhostOffset + 0, ... }  // Reserved for kick ghosts, if they should ever be a thing
+            { ChartIOHelper.c_drumsGhostOffset + 1, (in NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)Note.DrumPad.Red, NoteFlagPriority.Ghost);
+            } },
+            { ChartIOHelper.c_drumsGhostOffset + 2, (in NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)Note.DrumPad.Yellow, NoteFlagPriority.Ghost);
+            } },
+            { ChartIOHelper.c_drumsGhostOffset + 3, (in NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)Note.DrumPad.Blue, NoteFlagPriority.Ghost);
+            } },
+            { ChartIOHelper.c_drumsGhostOffset + 4, (in NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)Note.DrumPad.Orange, NoteFlagPriority.Ghost);
+            } },
+            { ChartIOHelper.c_drumsGhostOffset + 5, (in NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsNoteFlagToggle(noteProcessParams, (int)Note.DrumPad.Green, NoteFlagPriority.Ghost);
             } },
         };
 
-        static readonly Dictionary<int, NoteEventProcessFn> GhlChartNoteNumberToProcessFnMap = new Dictionary<int, NoteEventProcessFn>()
+        static readonly IReadOnlyDictionary<int, NoteEventProcessFn> GhlChartNoteNumberToProcessFnMap = new Dictionary<int, NoteEventProcessFn>()
         {
             { 0, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)Note.GHLiveGuitarFret.White1); }},
             { 1, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)Note.GHLiveGuitarFret.White2); }},
@@ -100,8 +137,8 @@ namespace MoonscraperChartEditor.Song.IO
             { 8, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)Note.GHLiveGuitarFret.Black3); }},
             { 7, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsNote(noteProcessParams, (int)Note.GHLiveGuitarFret.Open); }},
 
-            { 5, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsChordFlag(noteProcessParams, Note.Flags.Forced); }},
-            { 6, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsChordFlag(noteProcessParams, Note.Flags.Tap); }},
+            { 5, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsChordFlag(noteProcessParams, NoteFlagPriority.Forced); }},
+            { 6, (in NoteProcessParams noteProcessParams) => { ProcessNoteOnEventAsChordFlag(noteProcessParams, NoteFlagPriority.Tap); }},
         };
 
         public static Song ReadChart(string filepath)
@@ -233,10 +270,10 @@ namespace MoonscraperChartEditor.Song.IO
                             Song.Instrument instrument;
                             if (ChartIOHelper.c_instrumentStrToEnumLookup.TryGetValue(instrumentKey, out instrument))
                             {
-                                Song.Instrument instrumentParsingType;
+                                ChartIOHelper.TrackLoadType instrumentParsingType;
                                 if (!ChartIOHelper.c_instrumentParsingTypeLookup.TryGetValue(instrument, out instrumentParsingType))
                                 {
-                                    instrumentParsingType = Song.Instrument.Guitar;
+                                    instrumentParsingType = ChartIOHelper.TrackLoadType.Guitar;
                                 }
 
                                 LoadChart(song.GetChart(instrument, chartDiff), stringData, instrumentParsingType, fileLoadType);
@@ -267,7 +304,7 @@ namespace MoonscraperChartEditor.Song.IO
             dataName = dataName.TrimStart('[');
             dataName = dataName.TrimEnd(']');
             Chart unrecognisedChart = new Chart(song, Song.Instrument.Unrecognised, dataName);
-            LoadChart(unrecognisedChart, stringData, Song.Instrument.Unrecognised, fileLoadType);
+            LoadChart(unrecognisedChart, stringData, ChartIOHelper.TrackLoadType.Unrecognised, fileLoadType);
             song.unrecognisedCharts.Add(unrecognisedChart);
         }
 
@@ -439,7 +476,7 @@ namespace MoonscraperChartEditor.Song.IO
             string audioFilepath = ChartIOHelper.MetaData.ParseAsString(line);
 
             // Check if it's already the full path. If not, make it relative to the chart file.
-            if (!File.Exists(audioFilepath))
+            if (!Path.IsPathRooted(audioFilepath))
                 audioFilepath = Path.Combine(audioDirectory, audioFilepath);
 
             if (File.Exists(audioFilepath) && Utility.validateExtension(audioFilepath, Globals.validAudioExtensions))
@@ -593,7 +630,7 @@ namespace MoonscraperChartEditor.Song.IO
             while ((startIndex + ++length) < line.Length && line[startIndex + length] != ' ') ;
         }
 
-        static void LoadChart(Chart chart, IList<string> data, Song.Instrument instrument, ChartIOHelper.FileSubType fileLoadType)
+        static void LoadChart(Chart chart, IList<string> data, ChartIOHelper.TrackLoadType instrument, ChartIOHelper.FileSubType fileLoadType)
         {
 #if TIMING_DEBUG
         float time = Time.realtimeSinceStartup;
@@ -609,7 +646,7 @@ namespace MoonscraperChartEditor.Song.IO
 
             chart.SetCapacity(data.Count);
 
-            Dictionary<int, NoteEventProcessFn> noteProcessDict = GetNoteProcessDict(chart.gameMode);
+            var noteProcessDict = GetNoteProcessDict(chart.gameMode);
 
             try
             {
@@ -656,7 +693,7 @@ namespace MoonscraperChartEditor.Song.IO
                                     }
                                     uint length = (uint)FastStringToIntParse(line, stringStartIndex, stringLength);
 
-                                    if (instrument == Song.Instrument.Unrecognised)
+                                    if (instrument == ChartIOHelper.TrackLoadType.Unrecognised)
                                     {
                                         Note newNote = new Note(tick, fret_type, length);
                                         chart.Add(newNote, false);
@@ -704,13 +741,38 @@ namespace MoonscraperChartEditor.Song.IO
 
                                         case ChartIOHelper.c_starpowerDrumFillId:
                                             {
-                                                if (instrument == Song.Instrument.Drums)
+                                                if (instrument == ChartIOHelper.TrackLoadType.Drums)
                                                 {
                                                     chart.Add(new Starpower(tick, length, Starpower.Flags.ProDrums_Activation), false);
                                                 }
                                                 else
                                                 {
                                                     Debug.Assert(false, "Found drum fill flag on incompatible instrument.");
+                                                }
+                                                break;
+                                            }
+
+                                        case ChartIOHelper.c_drumRollStandardId:
+                                            {
+                                                if (instrument == ChartIOHelper.TrackLoadType.Drums)
+                                                {
+                                                    chart.Add(new DrumRoll(tick, length, DrumRoll.Type.Standard), false);
+                                                }
+                                                else
+                                                {
+                                                    Debug.Assert(false, "Found standard drum roll flag on incompatible instrument.");
+                                                }
+                                                break;
+                                            }
+                                        case ChartIOHelper.c_drumRollSpecialId:
+                                            {
+                                                if (instrument == ChartIOHelper.TrackLoadType.Drums)
+                                                {
+                                                    chart.Add(new DrumRoll(tick, length, DrumRoll.Type.Special), false);
+                                                }
+                                                else
+                                                {
+                                                    Debug.Assert(false, "Found special drum roll flag on incompatible instrument.");
                                                 }
                                                 break;
                                             }
@@ -771,7 +833,7 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        static Dictionary<int, NoteEventProcessFn> GetNoteProcessDict(Chart.GameMode gameMode)
+        static IReadOnlyDictionary<int, NoteEventProcessFn> GetNoteProcessDict(Chart.GameMode gameMode)
         {
             switch (gameMode)
             {
@@ -802,18 +864,18 @@ namespace MoonscraperChartEditor.Song.IO
             chart.Add(newNote, false);
         }
 
-        static void ProcessNoteOnEventAsChordFlag(in NoteProcessParams noteProcessParams, Note.Flags flag)
+        static void ProcessNoteOnEventAsChordFlag(in NoteProcessParams noteProcessParams, NoteFlagPriority flagData)
         {
             var flagEvent = noteProcessParams.noteEvent;
 
             // Delay the actual processing once all the notes are actually in
             noteProcessParams.postNotesAddedProcessList.Add((in NoteProcessParams processParams) =>
             {
-                ProcessNoteOnEventAsChordFlagPostDelay(processParams, flagEvent, flag);
+                ProcessNoteOnEventAsChordFlagPostDelay(processParams, flagEvent, flagData);
             });
         }
 
-        static void ProcessNoteOnEventAsChordFlagPostDelay(in NoteProcessParams noteProcessParams, NoteEvent noteEvent, Note.Flags flag)
+        static void ProcessNoteOnEventAsChordFlagPostDelay(in NoteProcessParams noteProcessParams, NoteEvent noteEvent, NoteFlagPriority flagData)
         {
             Chart chart = noteProcessParams.chart;
 
@@ -821,22 +883,22 @@ namespace MoonscraperChartEditor.Song.IO
             SongObjectHelper.FindObjectsAtPosition(noteEvent.tick, chart.notes, out index, out length);
             if (length > 0)
             {
-                GroupAddFlags(chart.notes, flag, index, length);
+                GroupAddFlags(chart.notes, flagData, index, length);
             }
         }
 
-        static void ProcessNoteOnEventAsNoteFlagToggle(in NoteProcessParams noteProcessParams, int rawNote, Note.Flags flag)
+        static void ProcessNoteOnEventAsNoteFlagToggle(in NoteProcessParams noteProcessParams, int rawNote, NoteFlagPriority flagData)
         {
             var flagEvent = noteProcessParams.noteEvent;
 
             // Delay the actual processing once all the notes are actually in
             noteProcessParams.postNotesAddedProcessList.Add((in NoteProcessParams processParams) =>
             {
-                ProcessNoteOnEventAsNoteFlagTogglePostDelay(processParams, rawNote, flagEvent, flag);
+                ProcessNoteOnEventAsNoteFlagTogglePostDelay(processParams, rawNote, flagEvent, flagData);
             });
         }
 
-        static void ProcessNoteOnEventAsNoteFlagTogglePostDelay(in NoteProcessParams noteProcessParams, int rawNote, NoteEvent noteEvent, Note.Flags flag)
+        static void ProcessNoteOnEventAsNoteFlagTogglePostDelay(in NoteProcessParams noteProcessParams, int rawNote, NoteEvent noteEvent, NoteFlagPriority flagData)
         {
             Chart chart = noteProcessParams.chart;
 
@@ -849,17 +911,25 @@ namespace MoonscraperChartEditor.Song.IO
                     Note note = chart.notes[i];
                     if (note.rawNote == rawNote)
                     {
-                        note.flags ^= flag;
+                        TryAddNoteFlags(note, flagData);
                     }
                 }
             }
         }
 
-        static void GroupAddFlags(IList<Note> notes, Note.Flags flag, int index, int length)
+        static void GroupAddFlags(IList<Note> notes, NoteFlagPriority flagData, int index, int length)
         {
             for (int i = index; i < index + length; ++i)
             {
-                notes[i].flags = notes[i].flags | flag;
+                TryAddNoteFlags(notes[i], flagData);
+            }
+        }
+
+        static void TryAddNoteFlags(Note note, NoteFlagPriority flagData)
+        {
+            if (!flagData.TryApplyToNote(note))
+            {
+                Debug.LogWarning($"Could not apply flag {flagData.flagToAdd} to a note. It was blocked by existing flag {flagData.blockingFlag}.");
             }
         }
     }
