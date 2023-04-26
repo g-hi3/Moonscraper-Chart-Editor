@@ -8,12 +8,12 @@ using System.Collections;
 public class CameraLayering : MonoBehaviour {
 
     Camera cam;
-    MKGlowSystem.MKGlow mkGlow;
+    Glow mkGlow;
 
 	// Use this for initialization
 	void Start () {
         cam = GetComponent<Camera>();
-        mkGlow = GetComponent<MKGlowSystem.MKGlow>();
+        mkGlow = GetComponent<Glow>();
 
         ChartEditor.Instance.events.viewModeSwitchEvent.Register(UpdateCullingMask);
 

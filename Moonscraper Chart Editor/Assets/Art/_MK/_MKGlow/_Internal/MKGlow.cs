@@ -3,7 +3,7 @@
 //											 //
 // Created by Michael Kremmel                //
 // www.michaelkremmel.de                     //
-// Copyright © 2015 All rights reserved.     //
+// Copyright Â© 2015 All rights reserved.     //
 ///////////////////////////////////////////////
 
 using UnityEngine;
@@ -15,7 +15,7 @@ namespace MKGlowSystem
 {
     [ExecuteInEditMode]
     [RequireComponent(typeof(Camera))]
-    public class MKGlow : MonoBehaviour
+    public class MKGlow : Glow
     {
         // External edit for optimisation since OnPreRender is expensive
         void Start()

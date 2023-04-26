@@ -25,7 +25,7 @@ public class DebugScreenshot : MonoBehaviour
         GameObject beatLines = GameObject.Find("Beat Lines");
         beatLines.SetActive(false);
 
-        MKGlowSystem.MKGlow mkGlow = GameObject.FindObjectOfType<MKGlowSystem.MKGlow>();
+        Glow mkGlow = GameObject.FindObjectOfType<Glow>();
         mkGlow.enabled = false;
 
         TakeScreenshot();
